@@ -9,6 +9,7 @@ import org.bytedeco.llvm.global.LLVM;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static com.j.klee.utils.LLVMUtils.getFunctionName;
 import static org.bytedeco.llvm.global.LLVM.*;
@@ -18,6 +19,9 @@ public class KModule {
     LLVMModuleRef module;
 
     InstructionInfoTable instructionInfoTable;
+
+    List<LLVMValueRef> constants;
+    Map<LLVMValueRef, KConstant> constantMap;
 
     public void link(List<LLVMModuleRef> modules, ModuleOptions moduleOptions) {
         module = modules.get(0);
@@ -55,5 +59,17 @@ public class KModule {
 
             f = LLVM.LLVMGetNextFunction(f);
         }
+    }
+
+    public int getConstantID(LLVMValueRef value, KInstruction kInstruction) {
+        if (constantMap.get(value) != null) {
+            return constantMap.get(value).id;
+        }
+
+        int id = constants.size();
+        KConstant kConstant = new KConstant(value, id, kInstruction);
+        constantMap.put(value, kConstant);
+        constants.add(value);
+        return id;
     }
 }
