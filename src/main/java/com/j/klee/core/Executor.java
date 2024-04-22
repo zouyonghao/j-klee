@@ -1,7 +1,11 @@
 package com.j.klee.core;
 
 import com.j.klee.core.impl.ExecutorImpl;
+import com.j.klee.module.KModule;
+import org.bytedeco.llvm.LLVM.LLVMModuleRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
+
+import java.util.List;
 
 public interface Executor {
     static Executor create() {
@@ -9,7 +13,7 @@ public interface Executor {
     }
 
     /**
-     * TODO: can we have a IR for a symbolic executor, so we decouple with LLVM
+     * TODO: can we have a IR for a symbolic executor, so we decouple with LLVM?
      *
      * @param f    LLVM function
      * @param argc argc
@@ -19,4 +23,7 @@ public interface Executor {
     void runFunctionAsMain(LLVMValueRef f, int argc, char[][] argv, char[][] envp);
 
 
+    LLVMModuleRef setModule(List<LLVMModuleRef> modules, ModuleOptions moduleOptions);
+
+    KModule getKModule();
 }
