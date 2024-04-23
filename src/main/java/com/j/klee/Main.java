@@ -3,7 +3,10 @@ package com.j.klee;
 import com.j.klee.core.Executor;
 import com.j.klee.core.ModuleOptions;
 import org.bytedeco.javacpp.BytePointer;
-import org.bytedeco.llvm.LLVM.*;
+import org.bytedeco.llvm.LLVM.LLVMContextRef;
+import org.bytedeco.llvm.LLVM.LLVMMemoryBufferRef;
+import org.bytedeco.llvm.LLVM.LLVMModuleRef;
+import org.bytedeco.llvm.LLVM.LLVMValueRef;
 
 import java.nio.IntBuffer;
 import java.util.ArrayList;
@@ -16,10 +19,14 @@ public class Main {
 
     public static void main(String[] args) {
 
+        // TODO: parse args
+
         if (args.length != 1) {
             System.out.println("Usage: java Main <filename>");
             return;
         }
+
+        // TODO: watch dog?
 
         String filename = args[0];
 
@@ -36,6 +43,7 @@ public class Main {
         // Create a context
         LLVMContextRef context = LLVMContextCreate();
 
+        // TODO: load archive
         // Create a memory buffer from the IR file
         LLVMMemoryBufferRef memBuf = new LLVMMemoryBufferRef();
         if (LLVMCreateMemoryBufferWithContentsOfFile(new BytePointer(filename), memBuf, error) != 0) {
@@ -56,6 +64,9 @@ public class Main {
         List<LLVMModuleRef> modules = new ArrayList<>();
         modules.add(module);
 
+        // TODO: detect architecture
+
+        // TODO: support entry point
         System.out.println("Checking main function existence...");
         LLVMValueRef mainFunction = null;
         for (LLVMModuleRef m : modules) {
@@ -70,35 +81,31 @@ public class Main {
             return;
         }
 
+        // TODO: support POSIX runtime
+
+        // TODO: UBSan can we?
+
+        // TODO: cxx can we?
+
+        // TODO: libc
+
+        // TODO: link libraries
+
+        // TODO: env
+
+        // TODO: seed, record and replay
+
         Executor e = Executor.create();
         ModuleOptions moduleOptions = new ModuleOptions();
-        e.setModule(modules, moduleOptions);
 
+        try (LLVMModuleRef finalModule = e.setModule(modules, moduleOptions)) {
+            mainFunction = LLVMGetNamedFunction(finalModule, "main");
+
+            // TODO: externals and globals check for final module
+        }
+
+        // TODO: parse args
         e.runFunctionAsMain(mainFunction, 0, null, null);
-
-        // System.out.println("Reading functions...");
-        // // Iterate over all functions in the module
-        // LLVMValueRef func = LLVMGetFirstFunction(module);
-        // while (func != null && !func.isNull()) {
-        //     System.out.println("Reading function: " + LLVMGetValueName(func).getString());
-        //     // Iterate over all basic blocks in the function
-        //     LLVMBasicBlockRef basicBlock = LLVMGetFirstBasicBlock(func);
-        //     while (basicBlock != null && !basicBlock.isNull()) {
-        //         // Iterate over all instructions in the basic block
-        //         LLVMValueRef inst = LLVMGetFirstInstruction(basicBlock);
-        //         while (inst != null && !inst.isNull()) {
-        //             // Process the instruction
-        //             BytePointer instStr = LLVMPrintValueToString(inst);
-        //             System.out.println("Reading instruction from line: " + LLVMGetDebugLocLine(inst));
-        //             System.out.println("Inst type: " + LLVMPrintTypeToString(LLVMTypeOf(inst)).getString());
-        //             LLVMDisposeMessage(instStr);
-        //
-        //             inst = LLVMGetNextInstruction(inst);
-        //         }
-        //         basicBlock = LLVMGetNextBasicBlock(basicBlock);
-        //     }
-        //     func = LLVMGetNextFunction(func);
-        // }
 
         // Clean up
         LLVMDisposeModule(module);
