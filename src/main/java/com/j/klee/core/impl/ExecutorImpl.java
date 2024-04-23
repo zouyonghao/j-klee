@@ -1,14 +1,18 @@
 package com.j.klee.core.impl;
 
+import com.j.klee.core.Context;
 import com.j.klee.core.Executor;
-import com.j.klee.module.KModule;
 import com.j.klee.core.ModuleOptions;
 import com.j.klee.core.SpecialFunctionHandler;
+import com.j.klee.module.KModule;
+import com.j.klee.utils.DataLayout;
 import org.bytedeco.llvm.LLVM.LLVMModuleRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.j.klee.expr.Expr.Width.getWidthFromInt;
 
 public class ExecutorImpl implements Executor {
 
@@ -55,6 +59,9 @@ public class ExecutorImpl implements Executor {
         // TODO: stats tracker
 
         // TODO: initialize the context
+
+        DataLayout dataLayout = kModule.getTargetData();
+        Context.initialize(dataLayout.isLittleEndian(), getWidthFromInt(dataLayout.getPointerSizeInBits()));
 
         return kModule.getModuleRef();
     }

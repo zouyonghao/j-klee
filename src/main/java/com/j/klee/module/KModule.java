@@ -1,6 +1,7 @@
 package com.j.klee.module;
 
 import com.j.klee.core.ModuleOptions;
+import com.j.klee.utils.DataLayout;
 import com.j.klee.utils.LLVMUtils;
 import org.bytedeco.llvm.LLVM.LLVMModuleRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
@@ -24,8 +25,12 @@ public class KModule {
     private List<LLVMValueRef> constants = new ArrayList<>();
     private Map<LLVMValueRef, KConstant> constantMap = new HashMap<>();
 
-    public void link(List<LLVMModuleRef> modules, ModuleOptions moduleOptions) {
+    private DataLayout targetData;
+
+    public boolean link(List<LLVMModuleRef> modules, ModuleOptions moduleOptions) {
         module = modules.get(0);
+        targetData = new DataLayout(module);
+        return true;
     }
 
     public LLVMModuleRef getModuleRef() {
@@ -35,7 +40,6 @@ public class KModule {
     public void optimiseAndPrepare(ModuleOptions moduleOptions, List<String> preservedFunctions) {
         // TODO
     }
-
 
     public void checkModule() {
         // TODO
@@ -57,7 +61,6 @@ public class KModule {
             }
 
             KFunction kf = new KFunction(f, this);
-
             for (int i = 0; i < kf.getNumInstructions(); i++) {
                 KInstruction ki = kf.getInstructions()[i];
                 ki.setInfo(instructionInfoTable.getInstructionInfo(ki.getInst()));
@@ -83,5 +86,9 @@ public class KModule {
         constantMap.put(value, kConstant);
         constants.add(value);
         return id;
+    }
+
+    public DataLayout getTargetData() {
+        return targetData;
     }
 }

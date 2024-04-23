@@ -4,6 +4,8 @@ import com.j.klee.core.Executor;
 import com.j.klee.core.SpecialFunctionHandler;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
 
+import java.util.AbstractMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -18,18 +20,20 @@ public class SpecialFunctionHandlerImpl implements SpecialFunctionHandler {
 
     Executor executor;
 
+    Map<LLVMValueRef, Map.Entry<FunctionHandler, Boolean>> handlers = new HashMap<>();
+
     public SpecialFunctionHandlerImpl(ExecutorImpl executor) {
         this.executor = executor;
     }
 
     @Override
     public void prepare(List<String> preservedFunction) {
-        for (Map.Entry<String, FunctionHandler> entry : handlerInfo.entrySet()) {
-            LLVMValueRef f = LLVMGetNamedFunction(executor.getKModule().getModuleRef(), entry.getKey());
-            if (f != null && (!entry.getValue().doNotOverride() || isDeclaration(f))) {
-                preservedFunction.add(entry.getKey());
+        for (Map.Entry<String, FunctionHandler> hi : handlerInfo.entrySet()) {
+            LLVMValueRef f = LLVMGetNamedFunction(executor.getKModule().getModuleRef(), hi.getKey());
+            if (f != null && (!hi.getValue().doNotOverride() || isDeclaration(f))) {
+                preservedFunction.add(hi.getKey());
 
-                if (entry.getValue().doesNotReturn()) {
+                if (hi.getValue().doesNotReturn()) {
                     addNoReturnFunctionAttribute(f);
                 }
 
@@ -42,7 +46,12 @@ public class SpecialFunctionHandlerImpl implements SpecialFunctionHandler {
 
     @Override
     public void bind() {
-
+        for (Map.Entry<String, FunctionHandler> hi : handlerInfo.entrySet()) {
+            LLVMValueRef f = LLVMGetNamedFunction(executor.getKModule().getModuleRef(), hi.getKey());
+            if (f != null && (!hi.getValue().doNotOverride() || isDeclaration(f))) {
+                handlers.put(f, new AbstractMap.SimpleEntry<>(hi.getValue(), hi.getValue().hasReturnValue()));
+            }
+        }
     }
 }
 
@@ -52,7 +61,6 @@ interface FunctionHandler {
     boolean doesNotReturn();
 
     boolean hasReturnValue();
-
 
     boolean doNotOverride(); /// Intrinsic should not be used if already defined
 }
@@ -72,7 +80,6 @@ class AbortFunctionHandler implements FunctionHandler {
     public boolean hasReturnValue() {
         return false;
     }
-
 
     @Override
     public boolean doNotOverride() {
