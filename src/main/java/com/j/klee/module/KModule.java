@@ -2,26 +2,27 @@ package com.j.klee.module;
 
 import com.j.klee.core.ModuleOptions;
 import com.j.klee.utils.LLVMUtils;
-import org.bytedeco.llvm.LLVM.LLVMBasicBlockRef;
 import org.bytedeco.llvm.LLVM.LLVMModuleRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
 import org.bytedeco.llvm.global.LLVM;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.j.klee.utils.LLVMUtils.getFunctionName;
-import static org.bytedeco.llvm.global.LLVM.*;
-
 public class KModule {
 
-    LLVMModuleRef module;
+    private LLVMModuleRef module;
 
-    InstructionInfoTable instructionInfoTable;
+    // shadow versions of LLVM structures
+    private List<KFunction> functions = new ArrayList<>();
+    private Map<LLVMValueRef, KFunction> functionMap = new HashMap<>();
 
-    List<LLVMValueRef> constants;
-    Map<LLVMValueRef, KConstant> constantMap;
+    private InstructionInfoTable instructionInfoTable;
+
+    private List<LLVMValueRef> constants = new ArrayList<>();
+    private Map<LLVMValueRef, KConstant> constantMap = new HashMap<>();
 
     public void link(List<LLVMModuleRef> modules, ModuleOptions moduleOptions) {
         module = modules.get(0);
@@ -57,8 +58,19 @@ public class KModule {
 
             KFunction kf = new KFunction(f, this);
 
+            for (int i = 0; i < kf.getNumInstructions(); i++) {
+                KInstruction ki = kf.getInstructions()[i];
+                ki.setInfo(instructionInfoTable.getInstructionInfo(ki.getInst()));
+            }
+
+            functionMap.put(f, kf);
+            functions.add(kf);
+
             f = LLVM.LLVMGetNextFunction(f);
         }
+
+        // TODO: escaping functions
+        // TODO: add declarations to escaping functions
     }
 
     public int getConstantID(LLVMValueRef value, KInstruction kInstruction) {

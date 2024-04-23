@@ -5,9 +5,7 @@ import org.bytedeco.llvm.LLVM.LLVMBasicBlockRef;
 import org.bytedeco.llvm.LLVM.LLVMTypeRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static com.j.klee.utils.LLVMUtils.getFunctionArgumentSize;
@@ -83,12 +81,19 @@ public class KFunction implements KCallable {
                 if (LLVMIsACallInst(inst) != null || LLVMIsAInvokeInst(inst) != null) {
                     LLVMValueRef functionCalled = LLVMGetCalledValue(inst);
                     int numArgs = getFunctionArgumentSize(functionCalled);
-                    ki.setOperands(new ArrayList<>(numArgs + 1));
+                    ki.setOperands(new int[numArgs + 1]);
                     // 0 - the call function instruction
-                    ki.getOperands().set(0, getOperandNum(functionCalled, registerMap, kModule, ki));
+                    ki.getOperands()[0] = getOperandNum(functionCalled, registerMap, kModule, ki);
                     for (int j = 0; j < numArgs; j++) {
-                        LLVMValueRef v = LLVMGetParam(functionCalled, i);
-                        ki.getOperands().set(i + 1, getOperandNum(v, registerMap, kModule, ki));
+                        LLVMValueRef v = LLVMGetOperand(inst, j);
+                        ki.getOperands()[j + 1] = getOperandNum(v, registerMap, kModule, ki);
+                    }
+                } else {
+                    int numOperands = LLVMGetNumOperands(inst);
+                    ki.setOperands(new int[numOperands]);
+                    for (int j = 0; j < numOperands; j++) {
+                        LLVMValueRef v = LLVMGetOperand(inst, j);
+                        ki.getOperands()[j] = getOperandNum(v, registerMap, kModule, ki);
                     }
                 }
 
@@ -108,7 +113,8 @@ public class KFunction implements KCallable {
             LLVMValueRef function = LLVMGetParamParent(value);
             int paramCount = LLVMCountParams(function);
             for (int i = 0; i < paramCount; i++) {
-                if (LLVMGetParam(function, i) == value) {
+                LLVMValueRef param = LLVMGetParam(function, i);
+                if (param.address() == value.address()) {
                     return i;
                 }
             }
@@ -142,6 +148,14 @@ public class KFunction implements KCallable {
     @Override
     public LLVMValueRef getValue() {
         return function;
+    }
+
+    public int getNumInstructions() {
+        return numInstructions;
+    }
+
+    public KInstruction[] getInstructions() {
+        return instructions;
     }
 }
 
