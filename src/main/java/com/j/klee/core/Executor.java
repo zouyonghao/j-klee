@@ -13,7 +13,7 @@ public interface Executor {
     }
 
     /**
-     * TODO: can we have a IR for a symbolic executor, so we decouple with LLVM?
+     * TODO: can we have a IR for the symbolic executor, so we are decoupled from LLVM?
      *
      * @param f    LLVM function
      * @param argc argc
@@ -22,8 +22,9 @@ public interface Executor {
      */
     void runFunctionAsMain(LLVMValueRef f, int argc, char[][] argv, char[][] envp);
 
-
     LLVMModuleRef setModule(List<LLVMModuleRef> modules, ModuleOptions moduleOptions);
 
     KModule getKModule();
+
+    void run(ExecutionState initialState);
 }

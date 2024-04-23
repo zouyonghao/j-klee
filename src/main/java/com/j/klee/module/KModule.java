@@ -17,7 +17,7 @@ public class KModule {
     private LLVMModuleRef module;
 
     // shadow versions of LLVM structures
-    private List<KFunction> functions = new ArrayList<>();
+    private List<KFunction> functions = new ArrayList<>(); // TODO: do we need this?
     private Map<LLVMValueRef, KFunction> functionMap = new HashMap<>();
 
     private InstructionInfoTable instructionInfoTable;
@@ -90,5 +90,9 @@ public class KModule {
 
     public DataLayout getTargetData() {
         return targetData;
+    }
+
+    public Map<LLVMValueRef, KFunction> getFunctionMap() {
+        return functionMap;
     }
 }

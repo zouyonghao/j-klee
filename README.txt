@@ -1,1 +1,1 @@
-A Java port (still in development) of KLEE symbolic executor (and a verifier)
+A Java port (still in development) of a KLEE like verifier
