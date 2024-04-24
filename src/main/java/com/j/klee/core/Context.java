@@ -18,4 +18,12 @@ public class Context {
         currentContext = new Context(isLittleEndian, pointerWidth);
         initialized = true;
     }
+
+    public static Context get() {
+        return currentContext;
+    }
+
+    public Expr.Width getPointerWidth() {
+        return pointerWidth;
+    }
 }

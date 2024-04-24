@@ -1,6 +1,8 @@
 package com.j.klee.core;
 
 import com.j.klee.core.impl.ExecutorImpl;
+import com.j.klee.expr.Expr;
+import com.j.klee.module.KInstruction;
 import com.j.klee.module.KModule;
 import org.bytedeco.llvm.LLVM.LLVMModuleRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
@@ -27,4 +29,9 @@ public interface Executor {
     KModule getKModule();
 
     void run(ExecutionState initialState);
+
+    void executeAlloc(ExecutionState state, Expr size, boolean b, KInstruction ki);
+
+    void executeAlloc(ExecutionState state, Expr size, boolean isLocal, KInstruction ki,
+                      boolean zeroMemory, Object reAllocFrom, int allocationAlignment);
 }

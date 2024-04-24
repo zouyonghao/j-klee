@@ -4,6 +4,10 @@ import com.j.klee.expr.Expr;
 
 // TODO: implement ConstantExpr
 public class ConstantExpr extends Expr {
+    public ConstantExpr(int byteSize, Width width) {
+
+    }
+
     @Override
     protected int compareContents(Expr other) {
         return 0;
@@ -52,5 +56,13 @@ public class ConstantExpr extends Expr {
     public boolean isZero() {
         // TODO: getAPValue().isMinValue()
         return false;
+    }
+
+    public static Expr createPointer(int byteSize, Width width) {
+        return alloc(byteSize, width);
+    }
+
+    private static Expr alloc(int byteSize, Width width) {
+        return new ConstantExpr(byteSize, width);
     }
 }

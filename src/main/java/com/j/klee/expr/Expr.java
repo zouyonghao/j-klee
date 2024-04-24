@@ -1,5 +1,8 @@
 package com.j.klee.expr;
 
+import com.j.klee.core.Context;
+import com.j.klee.expr.impl.ConstantExpr;
+
 public abstract class Expr {
     // static int count; TODO: do we need this?
     static final int MAGIC_HASH_CONSTANT = 39;
@@ -149,6 +152,10 @@ public abstract class Expr {
     }
 
     // TODO: Kind utilities
+
+    public static Expr createPointer(int byteSize) {
+        return ConstantExpr.createPointer(byteSize, Context.get().getPointerWidth());
+    }
     // TODO: Utilities
     // TODO: more...
 
