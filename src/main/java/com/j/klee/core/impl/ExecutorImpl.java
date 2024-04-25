@@ -1,6 +1,8 @@
 package com.j.klee.core.impl;
 
 import com.j.klee.core.*;
+import com.j.klee.core.mem.MemoryManager;
+import com.j.klee.core.mem.MemoryObject;
 import com.j.klee.expr.Expr;
 import com.j.klee.module.KFunction;
 import com.j.klee.module.KInstruction;
@@ -26,6 +28,8 @@ public class ExecutorImpl implements Executor {
     private SortedSet<ExecutionState> states = new TreeSet<>();
 
     private boolean haltExecution = false;
+
+    private MemoryManager memoryManager = new MemoryManager();
 
     @Override
     public void runFunctionAsMain(LLVMValueRef f, int argc, char[][] argv, char[][] envp) {
@@ -61,6 +65,8 @@ public class ExecutorImpl implements Executor {
             state.prevPC = state.pc;
             // TODO: step instruction
             KInstruction ki = state.pc.next();
+
+            assert (ki == state.pc.getKInst());
 
             executeInstruction(state, ki);
 
@@ -188,7 +194,7 @@ public class ExecutorImpl implements Executor {
                 System.out.println("currently unsupported inst: bitCast");
             }
             case LLVMFNeg, LLVMFAdd, LLVMFSub, LLVMFMul, LLVMFDiv, LLVMFRem, LLVMFPTrunc, LLVMFPExt, LLVMFPToUI,
-                 LLVMFPToSI, LLVMUIToFP, LLVMSIToFP, LLVMFCmp -> {
+                    LLVMFPToSI, LLVMUIToFP, LLVMSIToFP, LLVMFCmp -> {
                 System.out.println("currently unsupported inst: floating point");
             }
             case LLVMInsertValue -> {
@@ -235,7 +241,7 @@ public class ExecutorImpl implements Executor {
                              boolean zeroMemory, Object reAllocFrom, int allocationAlignment) {
         // TODO: toUnique size
         // TODO: optimize size
-        
+        MemoryObject mo = memoryManager.allocate(size, isLocal, state.prevPC.getInst(), allocationAlignment);
     }
 
     private void bindModuleConstants() {
