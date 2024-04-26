@@ -157,5 +157,9 @@ public class KFunction implements KCallable {
     public KInstruction[] getInstructions() {
         return instructions;
     }
+
+    public int getNumRegisters() {
+        return numRegisters;
+    }
 }
 

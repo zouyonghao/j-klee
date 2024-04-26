@@ -10,8 +10,7 @@ import static org.bytedeco.llvm.global.LLVM.*;
 public class LLVMUtils {
 
     public static void addNoReturnFunctionAttribute(LLVMValueRef f) {
-        LLVMAttributeRef noReturnAttr = LLVMCreateEnumAttribute(LLVMGetModuleContext(LLVMGetGlobalParent(f)),
-                LLVMGetEnumAttributeKindForName("noreturn", 8), 0);
+        LLVMAttributeRef noReturnAttr = LLVMCreateEnumAttribute(LLVMGetModuleContext(LLVMGetGlobalParent(f)), LLVMGetEnumAttributeKindForName("noreturn", 8), 0);
         LLVMAddAttributeAtIndex(f, LLVMAttributeFunctionIndex, noReturnAttr);
     }
 
@@ -65,5 +64,33 @@ public class LLVMUtils {
             inst = LLVMGetNextInstruction(inst);
         }
         return num;
+    }
+
+    public static int getAllocaIndex(LLVMValueRef allocaInst) {
+        if (LLVMGetInstructionOpcode(allocaInst) != LLVMAlloca) {
+            throw new IllegalArgumentException("Provided instruction is not an alloca.");
+        }
+
+        // Get the parent basic block of the alloca instruction
+        LLVMBasicBlockRef bb = LLVMGetInstructionParent(allocaInst);
+        if (bb == null) {
+            throw new IllegalArgumentException("Alloca instruction has no parent basic block.");
+        }
+
+        // Iterate through all instructions in the basic block to find the index
+        LLVMValueRef instr;
+        int index = 0;
+        for (instr = LLVMGetFirstInstruction(bb); instr != null; instr = LLVMGetNextInstruction(instr)) {
+            if (instr.address() == allocaInst.address()) {
+                return index;
+            }
+            index++;
+        }
+
+        throw new IllegalArgumentException("Instruction not found (shouldn't happen unless the input is invalid)");
+    }
+
+    public static LLVMValueRef getFunctionFromInst(LLVMValueRef inst) {
+        return LLVMGetBasicBlockParent(LLVMGetInstructionParent(inst));
     }
 }

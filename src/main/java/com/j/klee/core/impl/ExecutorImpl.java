@@ -4,6 +4,7 @@ import com.j.klee.core.*;
 import com.j.klee.core.mem.MemoryManager;
 import com.j.klee.core.mem.MemoryObject;
 import com.j.klee.expr.Expr;
+import com.j.klee.module.Cell;
 import com.j.klee.module.KFunction;
 import com.j.klee.module.KInstruction;
 import com.j.klee.module.KModule;
@@ -193,8 +194,7 @@ public class ExecutorImpl implements Executor {
             case LLVMBitCast -> {
                 System.out.println("currently unsupported inst: bitCast");
             }
-            case LLVMFNeg, LLVMFAdd, LLVMFSub, LLVMFMul, LLVMFDiv, LLVMFRem, LLVMFPTrunc, LLVMFPExt, LLVMFPToUI,
-                    LLVMFPToSI, LLVMUIToFP, LLVMSIToFP, LLVMFCmp -> {
+            case LLVMFNeg, LLVMFAdd, LLVMFSub, LLVMFMul, LLVMFDiv, LLVMFRem, LLVMFPTrunc, LLVMFPExt, LLVMFPToUI, LLVMFPToSI, LLVMUIToFP, LLVMSIToFP, LLVMFCmp -> {
                 System.out.println("currently unsupported inst: floating point");
             }
             case LLVMInsertValue -> {
@@ -237,11 +237,29 @@ public class ExecutorImpl implements Executor {
         executeAlloc(state, size, isLocal, ki, false, null, 0);
     }
 
-    public void executeAlloc(ExecutionState state, Expr size, boolean isLocal, KInstruction ki,
-                             boolean zeroMemory, Object reAllocFrom, int allocationAlignment) {
+    public void executeAlloc(ExecutionState state, Expr size, boolean isLocal, KInstruction ki, boolean zeroMemory, Object reAllocFrom, int allocationAlignment) {
         // TODO: toUnique size
         // TODO: optimize size
-        MemoryObject mo = memoryManager.allocate(size, isLocal, state.prevPC.getInst(), allocationAlignment);
+        MemoryObject mo = memoryManager.allocate(size, isLocal, false, state.prevPC.getInst(), allocationAlignment);
+
+        // TODO: object state
+        bindObjectInState(state, mo, isLocal);
+        // TODO: initialize to zero/random
+        bindLocal(ki, state, mo.address);
+    }
+
+    private void bindLocal(KInstruction target, ExecutionState state, Expr value) {
+        getDestCell(state, target).value = value;
+    }
+
+    private Cell getDestCell(ExecutionState state, KInstruction target) {
+        return state.stack.getLast().locals[target.getDest()];
+    }
+
+    private void bindObjectInState(ExecutionState state, MemoryObject mo, boolean isLocal) {
+        if (isLocal) {
+            state.stack.getLast().allocas.add(mo);
+        }
     }
 
     private void bindModuleConstants() {

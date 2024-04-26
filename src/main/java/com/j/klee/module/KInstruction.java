@@ -47,5 +47,9 @@ public class KInstruction {
     public void setInfo(InstructionInfo info) {
         this.info = info;
     }
+
+    public int getDest() {
+        return dest;
+    }
 }
 
