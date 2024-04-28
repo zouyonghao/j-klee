@@ -1,6 +1,7 @@
 package com.j.klee.core.impl;
 
 import com.j.klee.core.*;
+import com.j.klee.core.mem.Heap;
 import com.j.klee.core.mem.MemoryManager;
 import com.j.klee.core.mem.MemoryObject;
 import com.j.klee.expr.Expr;
@@ -12,6 +13,7 @@ import com.j.klee.utils.DataLayout;
 import org.bytedeco.llvm.LLVM.LLVMModuleRef;
 import org.bytedeco.llvm.LLVM.LLVMTypeRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
+import org.bytedeco.llvm.global.LLVM;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +36,8 @@ public class ExecutorImpl implements Executor {
     private MemoryManager memoryManager = new MemoryManager();
 
     public enum MemOpType {MEMOP_READ, MEMOP_WRITE, MEMOP_NAME, MEMOP_NOP}
+
+    public enum MemOpResult {MemOp_Success, MemOp_OOB, MemOp_Error}
 
     @Override
     public void runFunctionAsMain(LLVMValueRef f, int argc, char[][] argv, char[][] envp) {
@@ -246,6 +250,43 @@ public class ExecutorImpl implements Executor {
 
     public void executeMemoryOperation(ExecutionState state, MemOpType memOpType, Expr address, Expr value, KInstruction target, Expr.Width objSize, String name) {
         // TODO: execute memory operation
+        Expr.Width type;
+        if (memOpType == MemOpType.MEMOP_WRITE) {
+            type = value.getWidth();
+        } else if (memOpType == MemOpType.MEMOP_READ) {
+            type = getWidthForLLVMType(LLVM.LLVMTypeOf(target.getInst()));
+        } else if (memOpType == MemOpType.MEMOP_NAME) {
+            type = objSize;
+        } else {
+            throw new IllegalStateException("Unknown memop type: " + memOpType);
+        }
+
+        int bytes = getMinBytesForWidth(type);
+        System.out.println("mem op bytes = " + bytes);
+
+        // TODO: forall
+
+        MemOpResult result = trySingleResolution(state, memOpType, address, value, target, objSize, name,
+                /* heap */ state.heap, bytes, type,
+                /* useHeapConstraints */ true,
+                /* useFZoneConstraints */ false,
+                /* fZoneIndex */ -1);
+    }
+
+    private MemOpResult trySingleResolution(ExecutionState state, MemOpType memOpType, Expr address, Expr value, KInstruction target, Expr.Width objSize, String name,
+            /* heap */ Heap heap, int bytes, Expr.Width type,
+            /* useHeapConstraints */ boolean useHeapConstraints,
+            /* useFZoneConstraints */ boolean useFZoneConstraints,
+            /* fZoneIndex */int fZoneIndex) {
+        return null;
+    }
+
+    private int getMinBytesForWidth(Expr.Width w) {
+        return (w.getWidth() + 7) / 8;
+    }
+
+    private Expr.Width getWidthForLLVMType(LLVMTypeRef type) {
+        return getWidthFromInt(kModule.getTargetData().getTypeSizeInBits(type));
     }
 
     public Cell eval(KInstruction ki, int index, ExecutionState state) {
@@ -284,6 +325,9 @@ public class ExecutorImpl implements Executor {
     }
 
     private void bindObjectInState(ExecutionState state, MemoryObject mo, boolean isLocal) {
+
+        state.heap.addObject(mo);
+
         if (isLocal) {
             state.stack.getLast().allocas.add(mo);
         }

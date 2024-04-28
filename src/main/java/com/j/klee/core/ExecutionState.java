@@ -1,5 +1,6 @@
 package com.j.klee.core;
 
+import com.j.klee.core.mem.Heap;
 import com.j.klee.module.KFunction;
 import com.j.klee.module.KInstruction;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
@@ -18,11 +19,14 @@ public class ExecutionState implements Comparable<ExecutionState> {
 
     private static int nextID = 1;
 
+    public Heap heap;
+
     public ExecutionState(KFunction kFunction) {
         pc = new KInstIterator(Arrays.stream(kFunction.getInstructions()).iterator());
         prevPC = pc;
         stack.add(new StackFrame(null, kFunction));
         setID();
+        heap = new Heap();
     }
 
     private void setID() {

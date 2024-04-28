@@ -2,6 +2,7 @@ package com.j.klee.expr.impl;
 
 import com.j.klee.expr.Expr;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
+import org.bytedeco.llvm.global.LLVM;
 
 // TODO: implement ConstantExpr
 public class ConstantExpr extends Expr {
@@ -28,7 +29,7 @@ public class ConstantExpr extends Expr {
 
     @Override
     public Width getWidth() {
-        return null;
+        return Width.getWidthFromInt(LLVM.LLVMGetIntTypeWidth(LLVM.LLVMTypeOf(constIntValue)));
     }
 
     @Override

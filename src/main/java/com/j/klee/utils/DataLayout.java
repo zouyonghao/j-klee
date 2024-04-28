@@ -31,6 +31,26 @@ public class DataLayout {
         return LLVMPointerSize(dataLayout) * 8;
     }
 
+    public int getTypeSizeInBits(LLVMTypeRef type) {
+        if (LLVM.LLVMTypeIsSized(type) != 1) {
+            LLVM.LLVMDumpType(type);
+            throw new IllegalStateException("Type is not sized!");
+        }
+        switch (LLVM.LLVMGetTypeKind(type)) {
+            case LLVM.LLVMLabelTypeKind -> {
+                return 0;
+            }
+            case LLVM.LLVMPointerTypeKind -> {
+                return LLVM.LLVMPointerSizeForAS(dataLayout, LLVM.LLVMGetPointerAddressSpace(type));
+            }
+            case LLVM.LLVMIntegerTypeKind -> {
+                return LLVM.LLVMGetIntTypeWidth(type);
+            }
+        }
+        LLVM.LLVMDumpType(type);
+        throw new IllegalStateException("Unsupported type!");
+    }
+
     public int LLVMStoreSizeOfType(LLVMTypeRef type) {
         return Math.toIntExact((LLVM.LLVMStoreSizeOfType(dataLayout, type) + 7) / 8);
     }
