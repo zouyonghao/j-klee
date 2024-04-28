@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import static com.j.klee.core.impl.ExecutorUtil.evalConstant;
 import static com.j.klee.expr.Expr.Width.getWidthFromInt;
 import static com.j.klee.utils.LLVMUtils.getFunctionArgumentSize;
 import static org.bytedeco.llvm.global.LLVM.*;
@@ -31,6 +32,8 @@ public class ExecutorImpl implements Executor {
     private boolean haltExecution = false;
 
     private MemoryManager memoryManager = new MemoryManager();
+
+    public enum MemOpType {MEMOP_READ, MEMOP_WRITE, MEMOP_NAME, MEMOP_NOP}
 
     @Override
     public void runFunctionAsMain(LLVMValueRef f, int argc, char[][] argv, char[][] envp) {
@@ -161,6 +164,7 @@ public class ExecutorImpl implements Executor {
                 System.out.println("currently unsupported inst: icmp");
             }
             case LLVMAlloca -> {
+                System.out.println("executing alloca..." + state.pc.getKInst().getInfo().getLine());
                 LLVMTypeRef allocType = LLVMGetAllocatedType(inst);
                 int byteSize = this.kModule.getTargetData().LLVMStoreSizeOfType(allocType);
                 Expr size = Expr.createPointer(byteSize);
@@ -171,7 +175,13 @@ public class ExecutorImpl implements Executor {
                 System.out.println("currently unsupported inst: load");
             }
             case LLVMStore -> {
-                System.out.println("currently unsupported inst: store");
+                System.out.println("executing store..." + state.pc.getKInst().getInfo().getLine());
+                Expr baseAddr = eval(ki, 1, state).value;
+                Expr value = eval(ki, 0, state).value;
+
+                System.out.println(baseAddr);
+                System.out.println(value);
+                executeMemoryOperation(state, MemOpType.MEMOP_WRITE, baseAddr, value, null, Expr.Width.InvalidWidth, "");
             }
             case LLVMGetElementPtr -> {
                 System.out.println("currently unsupported inst: getElementPtr");
@@ -194,7 +204,8 @@ public class ExecutorImpl implements Executor {
             case LLVMBitCast -> {
                 System.out.println("currently unsupported inst: bitCast");
             }
-            case LLVMFNeg, LLVMFAdd, LLVMFSub, LLVMFMul, LLVMFDiv, LLVMFRem, LLVMFPTrunc, LLVMFPExt, LLVMFPToUI, LLVMFPToSI, LLVMUIToFP, LLVMSIToFP, LLVMFCmp -> {
+            case LLVMFNeg, LLVMFAdd, LLVMFSub, LLVMFMul, LLVMFDiv, LLVMFRem, LLVMFPTrunc, LLVMFPExt, LLVMFPToUI,
+                 LLVMFPToSI, LLVMUIToFP, LLVMSIToFP, LLVMFCmp -> {
                 System.out.println("currently unsupported inst: floating point");
             }
             case LLVMInsertValue -> {
@@ -233,6 +244,22 @@ public class ExecutorImpl implements Executor {
         }
     }
 
+    public void executeMemoryOperation(ExecutionState state, MemOpType memOpType, Expr address, Expr value, KInstruction target, Expr.Width objSize, String name) {
+        // TODO: execute memory operation
+    }
+
+    public Cell eval(KInstruction ki, int index, ExecutionState state) {
+        int vnumber = ki.getOperands()[index];
+
+        if (vnumber < 0) {
+            int constantIndex = -vnumber - 2;
+            return kModule.constantTable[constantIndex];
+        } else {
+            StackFrame sf = state.stack.getLast();
+            return sf.locals[vnumber];
+        }
+    }
+
     public void executeAlloc(ExecutionState state, Expr size, boolean isLocal, KInstruction ki) {
         executeAlloc(state, size, isLocal, ki, false, null, 0);
     }
@@ -267,6 +294,13 @@ public class ExecutorImpl implements Executor {
             for (int i = 0; i < kf.getNumInstructions(); i++) {
                 bindInstructionConstants(kf.getInstructions()[i]);
             }
+        }
+
+        kModule.constantTable = new Cell[kModule.constants.size()];
+        for (int i = 0; i < kModule.constants.size(); i++) {
+            Cell c = new Cell();
+            c.value = evalConstant(kModule.constants.get(i));
+            kModule.constantTable[i] = c;
         }
     }
 

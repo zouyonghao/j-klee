@@ -1,11 +1,19 @@
 package com.j.klee.expr.impl;
 
 import com.j.klee.expr.Expr;
+import org.bytedeco.llvm.LLVM.LLVMValueRef;
 
 // TODO: implement ConstantExpr
 public class ConstantExpr extends Expr {
-    public ConstantExpr(int byteSize, Width width) {
 
+    LLVMValueRef constIntValue;
+
+    public ConstantExpr(int value, Width width) {
+
+    }
+
+    public ConstantExpr(LLVMValueRef constIntValue) {
+        this.constIntValue = constIntValue;
     }
 
     @Override
@@ -62,7 +70,7 @@ public class ConstantExpr extends Expr {
         return alloc(byteSize, width);
     }
 
-    private static Expr alloc(int byteSize, Width width) {
-        return new ConstantExpr(byteSize, width);
+    private static Expr alloc(int value, Width width) {
+        return new ConstantExpr(value, width);
     }
 }

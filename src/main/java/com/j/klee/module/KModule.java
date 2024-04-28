@@ -22,8 +22,10 @@ public class KModule {
 
     private InstructionInfoTable instructionInfoTable;
 
-    private List<LLVMValueRef> constants = new ArrayList<>();
+    public List<LLVMValueRef> constants = new ArrayList<>();
     private Map<LLVMValueRef, KConstant> constantMap = new HashMap<>();
+
+    public Cell[] constantTable;
 
     private DataLayout targetData;
 
