@@ -2,7 +2,7 @@
   <configuration default="false" name="DanglingConcreteReadExpr" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="com.j.klee.Main" />
     <module name="j-klee" />
-    <option name="PROGRAM_PARAMETERS" value="DanglingConcreteReadExpr.ll" />
+    <option name="PROGRAM_PARAMETERS" value="--entry=entry DanglingConcreteReadExpr.ll" />
     <option name="WORKING_DIRECTORY" value="examples/feature" />
     <extension name="coverage">
       <pattern>

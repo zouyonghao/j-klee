@@ -5,10 +5,10 @@
 #include "klee/klee.h"
 #include <assert.h>
 
-int main() {
+int entry() {
   unsigned char x, y;
 
-  klee_make_symbolic(&x, sizeof x, "x");
+  // klee_make_symbolic(&x, sizeof x, "x");
 
   y = x;
 
