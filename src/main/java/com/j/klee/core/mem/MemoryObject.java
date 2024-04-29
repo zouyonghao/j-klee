@@ -2,6 +2,7 @@ package com.j.klee.core.mem;
 
 import com.j.klee.expr.Expr;
 import com.j.klee.expr.impl.AddressExpr;
+import com.j.klee.expr.impl.SubExpr;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
 
 public class MemoryObject {
@@ -45,6 +46,16 @@ public class MemoryObject {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public Expr getOffsetExpr(Expr address) {
+        return SubExpr.create(address, this.address);
+    }
+
+    public Expr read(Expr offset, Expr.Width type, boolean ignoreWrites) {
+        // TODO: read offset
+        // return this.address;
+        return null;
     }
 }
 

@@ -35,9 +35,13 @@ public class ExecutorImpl implements Executor {
 
     private MemoryManager memoryManager = new MemoryManager();
 
-    public enum MemOpType {MEMOP_READ, MEMOP_WRITE, MEMOP_NAME, MEMOP_NOP}
+    public enum MemOpType {MemOpRead, MemOpWrite, MemOpName, MemOpNop}
 
-    public enum MemOpResult {MemOp_Success, MemOp_OOB, MemOp_Error}
+    public enum MemOpResult {MemOpSuccess, MemOpOOB, MemOpError}
+
+    public static class MemoryObjectHolder {
+        public MemoryObject mo;
+    }
 
     @Override
     public void runFunctionAsMain(LLVMValueRef f, int argc, char[][] argv, char[][] envp) {
@@ -176,16 +180,18 @@ public class ExecutorImpl implements Executor {
                 executeAlloc(state, size, true, ki);
             }
             case LLVMLoad -> {
-                System.out.println("currently unsupported inst: load");
+                System.out.println("executing load..." + state.pc.getKInst().getInfo().getLine());
+                Expr baseAddr = eval(ki, 0, state).value;
+                executeMemoryOperation(state, MemOpType.MemOpRead, baseAddr, null, ki, Expr.Width.InvalidWidth, "");
             }
             case LLVMStore -> {
                 System.out.println("executing store..." + state.pc.getKInst().getInfo().getLine());
                 Expr baseAddr = eval(ki, 1, state).value;
                 Expr value = eval(ki, 0, state).value;
 
-                System.out.println(baseAddr);
-                System.out.println(value);
-                executeMemoryOperation(state, MemOpType.MEMOP_WRITE, baseAddr, value, null, Expr.Width.InvalidWidth, "");
+                System.out.println("base addr: " + baseAddr);
+                System.out.println("value: " + value);
+                executeMemoryOperation(state, MemOpType.MemOpWrite, baseAddr, value, null, Expr.Width.InvalidWidth, "");
             }
             case LLVMGetElementPtr -> {
                 System.out.println("currently unsupported inst: getElementPtr");
@@ -251,11 +257,11 @@ public class ExecutorImpl implements Executor {
     public void executeMemoryOperation(ExecutionState state, MemOpType memOpType, Expr address, Expr value, KInstruction target, Expr.Width objSize, String name) {
         // TODO: execute memory operation
         Expr.Width type;
-        if (memOpType == MemOpType.MEMOP_WRITE) {
+        if (memOpType == MemOpType.MemOpWrite) {
             type = value.getWidth();
-        } else if (memOpType == MemOpType.MEMOP_READ) {
+        } else if (memOpType == MemOpType.MemOpRead) {
             type = getWidthForLLVMType(LLVM.LLVMTypeOf(target.getInst()));
-        } else if (memOpType == MemOpType.MEMOP_NAME) {
+        } else if (memOpType == MemOpType.MemOpName) {
             type = objSize;
         } else {
             throw new IllegalStateException("Unknown memop type: " + memOpType);
@@ -271,14 +277,44 @@ public class ExecutorImpl implements Executor {
                 /* useHeapConstraints */ true,
                 /* useFZoneConstraints */ false,
                 /* fZoneIndex */ -1);
+        if (result == MemOpResult.MemOpSuccess) {
+            System.out.println("single resolution success");
+            return;
+        }
+        throw new IllegalStateException("Could not resolve address: " + address);
     }
 
-    private MemOpResult trySingleResolution(ExecutionState state, MemOpType memOpType, Expr address, Expr value, KInstruction target, Expr.Width objSize, String name,
-            /* heap */ Heap heap, int bytes, Expr.Width type,
-            /* useHeapConstraints */ boolean useHeapConstraints,
-            /* useFZoneConstraints */ boolean useFZoneConstraints,
-            /* fZoneIndex */int fZoneIndex) {
-        return null;
+    private MemOpResult trySingleResolution(ExecutionState state, MemOpType memOpType, Expr address, Expr value,
+            /**/ KInstruction target, Expr.Width objSize, String name,
+            /**/ Heap heap, int bytes, Expr.Width type,
+            /**/ boolean useHeapConstraints,
+            /**/ boolean useFZoneConstraints,
+            /**/int fZoneIndex) {
+        MemoryObjectHolder memoryObjectHolder = new MemoryObjectHolder();
+        MemOpResult result = heap.resolveOneExact(state, address, memoryObjectHolder);
+        // TODO: bounds checking
+        Expr offset = memoryObjectHolder.mo.getOffsetExpr(address);
+        executeInBoundsMemOp(state, state.heap, memOpType, memoryObjectHolder.mo, offset, address, value, target, name, type);
+        System.out.println(result);
+        return result;
+    }
+
+    private void executeInBoundsMemOp(ExecutionState state, Heap heap, MemOpType memOpType, MemoryObject mo, Expr offset, Expr address, Expr value, KInstruction target, String name, Expr.Width type) {
+        switch (memOpType) {
+            case MemOpWrite -> {
+
+            }
+            case MemOpRead -> {
+                Expr result = mo.read(offset, type, /* ignoreWrites */ !mo.isLocal);
+                bindLocal(target, state, result);
+            }
+            case MemOpName -> {
+
+            }
+            default -> {
+                throw new IllegalStateException("Unknown mem op type: " + memOpType);
+            }
+        }
     }
 
     private int getMinBytesForWidth(Expr.Width w) {
@@ -290,14 +326,14 @@ public class ExecutorImpl implements Executor {
     }
 
     public Cell eval(KInstruction ki, int index, ExecutionState state) {
-        int vnumber = ki.getOperands()[index];
+        int valueNumber = ki.getOperands()[index];
 
-        if (vnumber < 0) {
-            int constantIndex = -vnumber - 2;
+        if (valueNumber < 0) {
+            int constantIndex = -valueNumber - 2;
             return kModule.constantTable[constantIndex];
         } else {
             StackFrame sf = state.stack.getLast();
-            return sf.locals[vnumber];
+            return sf.locals[valueNumber];
         }
     }
 
