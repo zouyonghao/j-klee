@@ -1,9 +1,6 @@
 package com.j.klee.utils;
 
-import org.bytedeco.llvm.LLVM.LLVMAttributeRef;
-import org.bytedeco.llvm.LLVM.LLVMBasicBlockRef;
-import org.bytedeco.llvm.LLVM.LLVMTypeRef;
-import org.bytedeco.llvm.LLVM.LLVMValueRef;
+import org.bytedeco.llvm.LLVM.*;
 
 import static org.bytedeco.llvm.global.LLVM.*;
 
@@ -92,5 +89,11 @@ public class LLVMUtils {
 
     public static LLVMValueRef getFunctionFromInst(LLVMValueRef inst) {
         return LLVMGetBasicBlockParent(LLVMGetInstructionParent(inst));
+    }
+
+    public static LLVMValueRef getAPIntFromInt(int v, int width) {
+        LLVMContextRef context = LLVMContextCreate();
+        LLVMTypeRef intType = LLVMIntTypeInContext(context, width);
+        return LLVMConstInt(intType, v, 0);
     }
 }

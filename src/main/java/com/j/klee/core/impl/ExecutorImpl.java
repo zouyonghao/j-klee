@@ -306,6 +306,9 @@ public class ExecutorImpl implements Executor {
             }
             case MemOpRead -> {
                 Expr result = mo.read(offset, type, /* ignoreWrites */ !mo.isLocal);
+
+                // TODO: forall
+
                 bindLocal(target, state, result);
             }
             case MemOpName -> {

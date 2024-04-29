@@ -1,5 +1,6 @@
 package com.j.klee.expr.impl;
 
+import com.j.klee.core.Context;
 import com.j.klee.core.mem.MemoryObject;
 import com.j.klee.expr.Expr;
 
@@ -26,7 +27,7 @@ public class AddressExpr extends Expr {
 
     @Override
     public Width getWidth() {
-        return null;
+        return Context.get().getPointerWidth();
     }
 
     @Override

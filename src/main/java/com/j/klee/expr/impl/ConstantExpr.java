@@ -1,8 +1,13 @@
 package com.j.klee.expr.impl;
 
+import com.j.klee.core.Context;
 import com.j.klee.expr.Expr;
+import com.j.klee.utils.LLVMUtils;
+import org.bytedeco.llvm.LLVM.LLVMContextRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
 import org.bytedeco.llvm.global.LLVM;
+
+import static org.bytedeco.llvm.global.LLVM.LLVMContextCreate;
 
 // TODO: implement ConstantExpr
 public class ConstantExpr extends Expr {
@@ -10,7 +15,7 @@ public class ConstantExpr extends Expr {
     LLVMValueRef constIntValue;
 
     public ConstantExpr(int value, Width width) {
-
+        constIntValue = LLVMUtils.getAPIntFromInt(value, width.getWidth());
     }
 
     public ConstantExpr(LLVMValueRef constIntValue) {
@@ -64,14 +69,22 @@ public class ConstantExpr extends Expr {
     @Override
     public boolean isZero() {
         // TODO: getAPValue().isMinValue()
-        return false;
+        return LLVM.LLVMConstIntGetZExtValue(constIntValue) == 0;
+    }
+
+    public static ConstantExpr create(int idx, Width width) {
+        return alloc(idx, width);
     }
 
     public static Expr createPointer(int byteSize, Width width) {
         return alloc(byteSize, width);
     }
 
-    private static Expr alloc(int value, Width width) {
+    public static ConstantExpr alloc(int value, Width width) {
         return new ConstantExpr(value, width);
+    }
+
+    public Expr extract(int off, Width w) {
+        throw new IllegalStateException("Not implemented");
     }
 }
