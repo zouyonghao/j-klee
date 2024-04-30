@@ -57,7 +57,9 @@ public class ZExtExpr extends Expr {
 
     @Override
     public void print() {
-
+        System.out.println("(ZExt ");
+        src.print();
+        System.out.println(")");
     }
 
     @Override

@@ -41,7 +41,18 @@ public class ReadExpr extends Expr {
 
     @Override
     public void print() {
-        // TODO
+        System.out.print("(Read ");
+        index.print();
+        if (updates.root != null) {
+            System.out.print(" " + updates.root.name);
+        }
+        UpdateList.UpdateNode un = updates.head;
+        while (un != null) {
+            System.out.println();
+            un.value.print();
+            un = un.next;
+        }
+        System.out.print(")");
     }
 
     @Override

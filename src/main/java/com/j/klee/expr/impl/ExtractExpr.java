@@ -58,7 +58,9 @@ public class ExtractExpr extends Expr {
 
     @Override
     public void print() {
-
+        System.out.print("(Extract ");
+        expr.print();
+        System.out.print(")");
     }
 
     @Override

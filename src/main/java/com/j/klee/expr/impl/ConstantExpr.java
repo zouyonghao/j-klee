@@ -49,7 +49,7 @@ public class ConstantExpr extends Expr {
 
     @Override
     public void print() {
-
+        System.out.print("(Constant " + LLVM.LLVMConstIntGetZExtValue(constIntValue) + ")");
     }
 
     @Override

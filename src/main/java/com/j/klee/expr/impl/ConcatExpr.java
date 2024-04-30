@@ -40,7 +40,11 @@ public class ConcatExpr extends Expr {
 
     @Override
     public void print() {
-
+        System.out.println("(Concat " + width + " ");
+        left.print();
+        System.out.println(" ");
+        right.print();
+        System.out.println(")");
     }
 
     @Override

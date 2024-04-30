@@ -39,7 +39,11 @@ public abstract class BinaryExpr extends Expr {
 
     @Override
     public void print() {
-
+        System.out.print("(" + getKind() + " ");
+        left.print();
+        System.out.print(" ");
+        right.print();
+        System.out.print(")");
     }
 
     @Override

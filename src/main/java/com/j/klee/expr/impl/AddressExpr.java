@@ -42,7 +42,7 @@ public class AddressExpr extends Expr {
 
     @Override
     public void print() {
-
+        System.out.print("(Address " + addressName + ")");
     }
 
     @Override
