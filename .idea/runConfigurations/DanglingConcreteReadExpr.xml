@@ -3,6 +3,7 @@
     <option name="MAIN_CLASS_NAME" value="com.j.klee.Main" />
     <module name="j-klee" />
     <option name="PROGRAM_PARAMETERS" value="--entry=entry DanglingConcreteReadExpr.ll" />
+    <option name="VM_PARAMETERS" value="-ea" />
     <option name="WORKING_DIRECTORY" value="examples/feature" />
     <extension name="coverage">
       <pattern>

@@ -120,7 +120,7 @@ public class KFunction implements KCallable {
             }
             System.out.println("getOperandNum failed for argument value, line: " + LLVMGetDebugLocLine(value));
             System.exit(-1);
-        } else if (LLVMIsABasicBlock(value) != null || LLVMIsAInlineAsm(value) != null || LLVMIsAValueAsMetadata(value) != null) {
+        } else if (LLVMIsABasicBlock(value) != null || LLVMIsAInlineAsm(value) != null || LLVMIsAMDNode(value) != null) {
             return -1;
         } else {
             assert (LLVMIsAConstant(value) != null);
@@ -159,6 +159,10 @@ public class KFunction implements KCallable {
 
     public int getNumRegisters() {
         return numRegisters;
+    }
+
+    public Map<LLVMBasicBlockRef, Integer> getBasicBlockEntry() {
+        return basicBlockEntry;
     }
 }
 

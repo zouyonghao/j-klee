@@ -1,6 +1,7 @@
 package com.j.klee.expr;
 
 import com.j.klee.core.Context;
+import com.j.klee.expr.impl.CmpExpr.EqExpr;
 import com.j.klee.expr.impl.ConstantExpr;
 
 public abstract class Expr {
@@ -9,17 +10,7 @@ public abstract class Expr {
 
     // Int64 can indicate i64, double or <2 * i32> in different cases.
     public enum Width {
-        InvalidWidth(0),
-        Bool(1),
-        Int8(8),
-        Int16(16),
-        Int32(32),
-        Int64(64),
-        Fl80(80),
-        Int128(128),
-        Int256(256),
-        Int512(512),
-        MaxWidth(512);
+        InvalidWidth(0), Bool(1), Int8(8), Int16(16), Int32(32), Int64(64), Fl80(80), Int128(128), Int256(256), Int512(512), MaxWidth(512);
 
         private final int width;
 
@@ -42,47 +33,22 @@ public abstract class Expr {
     }
 
     public enum Kind {
-        InvalidKind,
-        Constant,
-        NotOptimized,
-        Read,
-        Select,
-        Concat,
-        Extract,
+        InvalidKind, Constant, NotOptimized, Read, Select, Concat, Extract,
 
         // casting
-        ZExt,
-        SExt,
+        ZExt, SExt,
 
         // bit
         Not,
 
         // binary
-        Add,
-        Sub,
-        Mul,
-        UDiv,
-        SDiv,
-        URem,
-        SRem,
+        Add, Sub, Mul, UDiv, SDiv, URem, SRem,
 
         // bit
-        And,
-        Or,
-        Xor,
-        Shl,
-        LShr,
-        AShr,
+        And, Or, Xor, Shl, LShr, AShr,
 
         // compare
-        Eq,
-        Ne,
-        Ult,
-        Ule,
-        Slt,
-        Sle,
-        Sgt,
-        Sge;
+        Eq, Ne, Ult, Ule, Slt, Sle, Sgt, Sge;
 
         public static final Kind LastKind = Sge;
         public static final Kind CastKindFirst = ZExt;
@@ -155,6 +121,10 @@ public abstract class Expr {
 
     public static Expr createPointer(int byteSize) {
         return ConstantExpr.createPointer(byteSize, Context.get().getPointerWidth());
+    }
+
+    public static Expr createIsZero(Expr condition) {
+        return EqExpr.create(condition, ConstantExpr.create(0, condition.getWidth()));
     }
     // TODO: Utilities
     // TODO: more...

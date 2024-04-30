@@ -11,7 +11,10 @@ import com.j.klee.module.Cell;
 import com.j.klee.module.KFunction;
 import com.j.klee.module.KInstruction;
 import com.j.klee.module.KModule;
+import com.j.klee.solver.Solver;
 import com.j.klee.utils.DataLayout;
+import com.j.klee.utils.LLVMUtils;
+import org.bytedeco.llvm.LLVM.LLVMBasicBlockRef;
 import org.bytedeco.llvm.LLVM.LLVMModuleRef;
 import org.bytedeco.llvm.LLVM.LLVMTypeRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
@@ -76,11 +79,11 @@ public class ExecutorImpl implements Executor {
 
         while (!states.isEmpty() && !haltExecution) {
             ExecutionState state = states.first();
-            state.prevPC = state.pc;
-            // TODO: step instruction
-            KInstruction ki = state.pc.next();
+            state.prevPC.setTo(state.pc.index);
+            KInstruction ki = state.pc.getKInst();
 
-            assert (ki == state.pc.getKInst());
+            // TODO: step instruction
+            state.pc.next();
 
             executeInstruction(state, ki);
 
@@ -105,7 +108,31 @@ public class ExecutorImpl implements Executor {
                 System.out.println("currently unsupported inst: ret");
             }
             case LLVMBr -> {
-                System.out.println("currently unsupported inst: br");
+                if (LLVMUtils.isUnconditional(inst)) {
+                    LLVMValueRef bb = LLVM.LLVMGetOperand(inst, 0);
+                    assert (LLVM.LLVMValueIsBasicBlock(bb) == LLVMUtils.True);
+                    transferToBasicBlock(LLVM.LLVMValueAsBasicBlock(bb), LLVM.LLVMGetInstructionParent(inst), state);
+                } else {
+                    Expr cond = eval(ki, 0, state).value;
+
+                    // TODO: optimizer
+
+                    StatePair statePair = fork(state, cond, false, BranchType.ConditionalBranch);
+
+                    // TODO: track coverage
+
+                    LLVMBasicBlockRef parent = LLVM.LLVMGetInstructionParent(inst);
+                    if (statePair.trueState != null) {
+                        LLVMBasicBlockRef trueBB = LLVM.LLVMGetSuccessor(inst, 0);
+                        transferToBasicBlock(trueBB, parent, statePair.trueState);
+                    }
+                    if (statePair.falseState != null) {
+                        LLVMBasicBlockRef falseBB = LLVM.LLVMGetSuccessor(inst, 1);
+                        transferToBasicBlock(falseBB, parent, statePair.falseState);
+                    }
+
+                    // TODO: fork reason
+                }
             }
             case LLVMIndirectBr -> {
                 System.out.println("currently unsupported inst: indirect");
@@ -114,7 +141,9 @@ public class ExecutorImpl implements Executor {
                 System.out.println("currently unsupported inst: switch");
             }
             case LLVMUnreachable -> {
-                System.out.println("currently unsupported inst: unreachable");
+                // TODO: terminate state
+                System.out.println("run to unreachable code, end state " + state.id);
+                states.remove(state);
             }
             case LLVMInvoke -> {
                 System.out.println("currently unsupported inst: invoke");
@@ -265,6 +294,46 @@ public class ExecutorImpl implements Executor {
             default -> {
                 System.out.println("currently unsupported inst: " + LLVMGetInstructionOpcode(inst));
             }
+        }
+    }
+
+    private StatePair fork(ExecutionState current, Expr condition, boolean isInternal, int conditionalBranch) {
+        // TODO: check branch feasible
+
+        Solver.Validity result = Solver.Validity.Unknown;
+
+        if (result == Solver.Validity.True) {
+            return new StatePair(current, null);
+        } else if (result == Solver.Validity.False) {
+            return new StatePair(null, current);
+        } else {
+            // use current as true state
+            ExecutionState falseState = current.branch();
+            // TODO: added states
+            // TODO: process tree
+
+            states.add(falseState);
+
+            addConstraint(current, condition);
+            addConstraint(falseState, Expr.createIsZero(condition));
+
+            return new StatePair(current, falseState);
+        }
+    }
+
+    private void addConstraint(ExecutionState state, Expr condition) {
+        // TODO: check invalid constraint
+
+        state.addConstraint(condition);
+    }
+
+    private void transferToBasicBlock(LLVMBasicBlockRef dst, LLVMBasicBlockRef src, ExecutionState state) {
+        KFunction kf = state.stack.getLast().kf;
+        int entry = kf.getBasicBlockEntry().get(dst);
+        state.pc.setTo(entry);
+        System.out.println("transfer to index: " + entry);
+        if (LLVM.LLVMGetInstructionOpcode(state.pc.getInst()) == LLVMPHI) {
+            state.incomingBBIndex = LLVMUtils.getBasicBlockIndex(state.pc.getInst(), src);
         }
     }
 
@@ -456,5 +525,15 @@ public class ExecutorImpl implements Executor {
     @Override
     public KModule getKModule() {
         return kModule;
+    }
+
+    public static class StatePair {
+        public ExecutionState trueState;
+        public ExecutionState falseState;
+
+        public StatePair(ExecutionState trueState, ExecutionState falseState) {
+            this.trueState = trueState;
+            this.falseState = falseState;
+        }
     }
 }

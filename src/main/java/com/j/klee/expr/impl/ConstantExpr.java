@@ -72,8 +72,8 @@ public class ConstantExpr extends Expr {
         return LLVM.LLVMConstIntGetZExtValue(constIntValue) == 0;
     }
 
-    public static ConstantExpr create(int idx, Width width) {
-        return alloc(idx, width);
+    public static ConstantExpr create(int v, Width width) {
+        return alloc(v, width);
     }
 
     public static Expr createPointer(int byteSize, Width width) {

@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Heap {
-    List<MemoryObject> objects = new ArrayList<MemoryObject>();
+    List<MemoryObject> objects;
 
     public void addObject(MemoryObject object) {
         objects.add(object);
@@ -23,5 +23,13 @@ public class Heap {
             }
         }
         return ExecutorImpl.MemOpResult.MemOpError;
+    }
+
+    public Heap() {
+        objects = new ArrayList<>();
+    }
+
+    public Heap(Heap other) {
+        objects = new ArrayList<>(other.objects);
     }
 }

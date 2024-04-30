@@ -1,10 +1,14 @@
 package com.j.klee.utils;
 
+import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.llvm.LLVM.*;
+import org.bytedeco.llvm.global.LLVM;
 
 import static org.bytedeco.llvm.global.LLVM.*;
 
 public class LLVMUtils {
+    public static final int False = 0;
+    public static final int True = 1;
 
     public static void addNoReturnFunctionAttribute(LLVMValueRef f) {
         LLVMAttributeRef noReturnAttr = LLVMCreateEnumAttribute(LLVMGetModuleContext(LLVMGetGlobalParent(f)), LLVMGetEnumAttributeKindForName("noreturn", 8), 0);
@@ -95,5 +99,27 @@ public class LLVMUtils {
         LLVMContextRef context = LLVMContextCreate();
         LLVMTypeRef intType = LLVMIntTypeInContext(context, width);
         return LLVMConstInt(intType, v, 0);
+    }
+
+    public static boolean isUnconditional(LLVMValueRef inst) {
+        assert (LLVMGetInstructionOpcode(inst) == LLVMBr);
+        return LLVMGetNumOperands(inst) == 1;
+    }
+
+    public static int getBasicBlockIndex(LLVMValueRef inst, LLVMBasicBlockRef src) {
+        assert (LLVM.LLVMGetInstructionOpcode(inst) == LLVMPHI);
+        for (int i = 0; i < LLVM.LLVMGetNumOperands(inst); i++) {
+            if (LLVM.LLVMGetIncomingBlock(inst, i).address() == src.address()) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public static void dumpValue(LLVMValueRef value) {
+        try (BytePointer bp = LLVM.LLVMPrintValueToString(value)) {
+            System.out.println();
+            System.out.println(bp.getString());
+        }
     }
 }
