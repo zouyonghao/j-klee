@@ -124,7 +124,6 @@ public class KFunction implements KCallable {
             return -1;
         } else {
             assert (LLVMIsAConstant(value) != null);
-            LLVMValueRef constant = LLVMIsAConstant(value);
             return -(kModule.getConstantID(value, kInstruction) + 2);
         }
         return 0;
