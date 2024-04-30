@@ -302,10 +302,15 @@ public class ExecutorImpl implements Executor {
     private void executeInBoundsMemOp(ExecutionState state, Heap heap, MemOpType memOpType, MemoryObject mo, Expr offset, Expr address, Expr value, KInstruction target, String name, Expr.Width type) {
         switch (memOpType) {
             case MemOpWrite -> {
-
+                // TODO: old values?
+                // TODO: read only?
+                // TODO: forall
+                mo.write(offset, value);
             }
             case MemOpRead -> {
                 Expr result = mo.read(offset, type, /* ignoreWrites */ !mo.isLocal);
+                result.print();
+                System.out.println();
 
                 // TODO: forall
 

@@ -56,7 +56,6 @@ public class MemoryObject {
     }
 
     public Expr read(Expr offset, Expr.Width width, boolean ignoreWrites) {
-        // TODO: read offset
         offset = ZExtExpr.create(offset, Expr.Width.Int32);
         int numBytes = width.getWidth() / 8;
         Expr res = null;
@@ -82,6 +81,21 @@ public class MemoryObject {
         }
 
         return new UpdateList(updates.root, null);
+    }
+
+    public void write(Expr offset, Expr value) {
+        offset = ZExtExpr.create(offset, Expr.Width.Int32);
+        int numBytes = value.getWidth().getWidth() / 8;
+        for (int i = 0; i < numBytes; i++) {
+            // TODO: little endian, big endian
+            write8(AddExpr.create(offset, ConstantExpr.create(i, Expr.Width.Int32)),
+                    ExtractExpr.create(value, 8 * i, Expr.Width.Int8));
+        }
+    }
+
+    private void write8(Expr offset, Expr value) {
+        assert (offset.getWidth() == Expr.Width.Int32);
+        updates.extend(offset, value);
     }
 }
 
