@@ -5,6 +5,8 @@ import com.j.klee.core.mem.Heap;
 import com.j.klee.core.mem.MemoryManager;
 import com.j.klee.core.mem.MemoryObject;
 import com.j.klee.expr.Expr;
+import com.j.klee.expr.impl.CmpExpr.EqExpr;
+import com.j.klee.expr.impl.ZExtExpr;
 import com.j.klee.module.Cell;
 import com.j.klee.module.KFunction;
 import com.j.klee.module.KInstruction;
@@ -169,7 +171,20 @@ public class ExecutorImpl implements Executor {
                 System.out.println("currently unsupported inst: ashr");
             }
             case LLVMICmp -> {
-                System.out.println("currently unsupported inst: icmp");
+                switch (LLVM.LLVMGetICmpPredicate(inst)) {
+                    case LLVM.LLVMIntEQ -> {
+                        Expr left = eval(ki, 0, state).value;
+                        Expr right = eval(ki, 1, state).value;
+                        Expr result = EqExpr.create(left, right);
+                        result.print();
+                        bindLocal(ki, state, result);
+                    }
+                    case LLVMIntNE -> {
+
+                    }
+                    default ->
+                            System.out.println("currently unsupported icmp predicate: " + LLVM.LLVMGetICmpPredicate(inst));
+                }
             }
             case LLVMAlloca -> {
                 System.out.println("executing alloca..." + state.pc.getKInst().getInfo().getLine());
@@ -188,9 +203,6 @@ public class ExecutorImpl implements Executor {
                 System.out.println("executing store..." + state.pc.getKInst().getInfo().getLine());
                 Expr baseAddr = eval(ki, 1, state).value;
                 Expr value = eval(ki, 0, state).value;
-
-                System.out.println("base addr: " + baseAddr);
-                System.out.println("value: " + value);
                 executeMemoryOperation(state, MemOpType.MemOpWrite, baseAddr, value, null, Expr.Width.InvalidWidth, "");
             }
             case LLVMGetElementPtr -> {
@@ -200,7 +212,9 @@ public class ExecutorImpl implements Executor {
                 System.out.println("currently unsupported inst: trunc");
             }
             case LLVMZExt -> {
-                System.out.println("currently unsupported inst: zext");
+                Expr result = ZExtExpr.create(eval(ki, 0, state).value, getWidthForLLVMType(LLVM.LLVMTypeOf(inst)));
+                result.print();
+                bindLocal(ki, state, result);
             }
             case LLVMSExt -> {
                 System.out.println("currently unsupported inst: sext");
