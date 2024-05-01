@@ -36,4 +36,6 @@ public interface Executor {
                       boolean zeroMemory, Object reAllocFrom, int allocationAlignment);
 
     void terminateState(ExecutionState state);
+
+    void initializeSolver();
 }

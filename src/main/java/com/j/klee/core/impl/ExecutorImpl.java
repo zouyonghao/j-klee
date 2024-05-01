@@ -47,6 +47,7 @@ public class ExecutorImpl implements Executor {
     private boolean haltExecution = false;
     private MemoryManager memoryManager = new MemoryManager();
     private SpecialFunctionHandler specialFunctionHandler;
+    private Solver solver;
 
     @Override
     public void runFunctionAsMain(LLVMValueRef f, int argc, char[][] argv, char[][] envp) {
@@ -348,14 +349,24 @@ public class ExecutorImpl implements Executor {
         states.remove(state);
     }
 
+    @Override
+    public void initializeSolver() {
+        solver = new Solver();
+        // TODO: solver chain
+    }
+
     private StatePair fork(ExecutionState current, Expr condition, boolean isInternal, int conditionalBranch) {
         // TODO: check branch feasible
+        Solver.SolverEvaluateResult evaluateResult = solver.evaluate(current.constraints, condition
+                // TODO: query meta data
+                // current.queryMetaData
+        );
 
-        Solver.Validity result = Solver.Validity.Unknown;
+        assert (evaluateResult.solved);
 
-        if (result == Solver.Validity.True) {
+        if (evaluateResult.validity == Solver.Validity.True) {
             return new StatePair(current, null);
-        } else if (result == Solver.Validity.False) {
+        } else if (evaluateResult.validity == Solver.Validity.False) {
             return new StatePair(null, current);
         } else {
             // use current as true state

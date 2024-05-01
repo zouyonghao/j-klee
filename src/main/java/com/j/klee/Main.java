@@ -108,6 +108,8 @@ public class Main {
             // TODO: externals and globals check for final module
         }
 
+        e.initializeSolver();
+
         // TODO: parse args
         e.runFunctionAsMain(entryFunction, 0, null, null);
 
