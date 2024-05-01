@@ -24,6 +24,11 @@
             <artifactId>commons-cli</artifactId>
             <version>1.7.0</version>
         </dependency>
+        <dependency>
+            <groupId>io.ksmt</groupId>
+            <artifactId>ksmt-z3</artifactId>
+            <version>0.5.23</version>
+        </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
