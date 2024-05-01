@@ -34,4 +34,6 @@ public interface Executor {
 
     void executeAlloc(ExecutionState state, Expr size, boolean isLocal, KInstruction ki,
                       boolean zeroMemory, Object reAllocFrom, int allocationAlignment);
+
+    void terminateState(ExecutionState state);
 }

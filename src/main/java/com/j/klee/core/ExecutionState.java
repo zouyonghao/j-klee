@@ -88,7 +88,7 @@ public class ExecutionState implements Comparable<ExecutionState> {
 
         public void next() {
             index++;
-            current = kInstructions[index];
+            current = index >= kInstructions.length ? null : kInstructions[index];
         }
 
         public KInstruction getKInst() {

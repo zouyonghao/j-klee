@@ -1,7 +1,11 @@
 package com.j.klee.core.impl;
 
+import com.j.klee.core.ExecutionState;
 import com.j.klee.core.Executor;
 import com.j.klee.core.SpecialFunctionHandler;
+import com.j.klee.expr.Expr;
+import com.j.klee.module.KInstruction;
+import com.j.klee.utils.LLVMUtils;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
 
 import java.util.AbstractMap;
@@ -14,13 +18,15 @@ import static org.bytedeco.llvm.global.LLVM.LLVMGetNamedFunction;
 
 public class SpecialFunctionHandlerImpl implements SpecialFunctionHandler {
 
-    private static final Map<String, FunctionHandler> handlerInfo = Map.ofEntries(
+    Executor executor;
+
+    private final Map<String, FunctionHandler> handlerInfo = Map.ofEntries(
+            Map.entry("__assert_fail", new AssertFailHandler()),
+            Map.entry("klee_silent_exit", new SilentExitHandler()),
             Map.entry("abort", new AbortFunctionHandler())
     );
 
-    Executor executor;
-
-    Map<LLVMValueRef, Map.Entry<FunctionHandler, Boolean>> handlers = new HashMap<>();
+    private final Map<LLVMValueRef, Map.Entry<FunctionHandler, Boolean>> handlers = new HashMap<>();
 
     public SpecialFunctionHandlerImpl(ExecutorImpl executor) {
         this.executor = executor;
@@ -53,37 +59,110 @@ public class SpecialFunctionHandlerImpl implements SpecialFunctionHandler {
             }
         }
     }
-}
-
-interface FunctionHandler {
-    void handle();
-
-    boolean doesNotReturn();
-
-    boolean hasReturnValue();
-
-    boolean doNotOverride(); /// Intrinsic should not be used if already defined
-}
-
-class AbortFunctionHandler implements FunctionHandler {
-    @Override
-    public void handle() {
-
-    }
 
     @Override
-    public boolean doesNotReturn() {
-        return true;
-    }
-
-    @Override
-    public boolean hasReturnValue() {
+    public boolean handle(ExecutionState state, LLVMValueRef f, KInstruction target, List<Expr> arguments) {
+        Map.Entry<FunctionHandler, Boolean> handlerEntry = null;
+        for (Map.Entry<LLVMValueRef, Map.Entry<FunctionHandler, Boolean>> hi : handlers.entrySet()) {
+            if (hi.getKey().address() == f.address()) {
+                handlerEntry = hi.getValue();
+                break;
+            }
+        }
+        if (handlerEntry != null) {
+            FunctionHandler handler = handlerEntry.getKey();
+            boolean hasReturnValue = handlerEntry.getValue();
+            if (!hasReturnValue && !LLVMUtils.isUseEmpty(target.getInst())) {
+                System.err.println("expected return value from void special function " + target.getInst());
+                executor.terminateState(state);
+            } else {
+                handler.handle(state, target, arguments);
+            }
+            return true;
+        }
         return false;
     }
 
-    @Override
-    public boolean doNotOverride() {
-        return false;
+    interface FunctionHandler {
+        void handle(ExecutionState state, KInstruction target, List<Expr> arguments);
+
+        boolean doesNotReturn();
+
+        boolean hasReturnValue();
+
+        boolean doNotOverride(); /// Intrinsic should not be used if already defined
     }
 
+    class AbortFunctionHandler implements FunctionHandler {
+
+        @Override
+        public void handle(ExecutionState state, KInstruction target, List<Expr> arguments) {
+            System.err.println("terminating state for calling abort, id" + state.id);
+            executor.terminateState(state);
+        }
+
+        @Override
+        public boolean doesNotReturn() {
+            return true;
+        }
+
+        @Override
+        public boolean hasReturnValue() {
+            return false;
+        }
+
+        @Override
+        public boolean doNotOverride() {
+            return false;
+        }
+
+    }
+
+    class AssertFailHandler implements FunctionHandler {
+
+        @Override
+        public void handle(ExecutionState state, KInstruction target, List<Expr> arguments) {
+            System.err.println("terminating state for calling assert_fail, id" + state.id);
+            executor.terminateState(state);
+        }
+
+        @Override
+        public boolean doesNotReturn() {
+            return true;
+        }
+
+        @Override
+        public boolean hasReturnValue() {
+            return false;
+        }
+
+        @Override
+        public boolean doNotOverride() {
+            return false;
+        }
+
+    }
+
+    class SilentExitHandler implements FunctionHandler {
+        @Override
+        public void handle(ExecutionState state, KInstruction target, List<Expr> arguments) {
+            executor.terminateState(state);
+        }
+
+        @Override
+        public boolean doesNotReturn() {
+            return true;
+        }
+
+        @Override
+        public boolean hasReturnValue() {
+            return false;
+        }
+
+        @Override
+        public boolean doNotOverride() {
+            return false;
+        }
+    }
 }
+

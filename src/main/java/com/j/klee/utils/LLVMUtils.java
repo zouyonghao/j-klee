@@ -1,8 +1,12 @@
 package com.j.klee.utils;
 
+import com.j.klee.core.ExecutionState;
+import com.j.klee.module.KInstruction;
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.llvm.LLVM.*;
 import org.bytedeco.llvm.global.LLVM;
+
+import java.util.List;
 
 import static org.bytedeco.llvm.global.LLVM.*;
 
@@ -121,5 +125,19 @@ public class LLVMUtils {
             System.out.println();
             System.out.println(bp.getString());
         }
+    }
+
+    public static boolean isUseEmpty(LLVMValueRef value) {
+        return LLVM.LLVMGetFirstUse(value) == null;
+    }
+
+    /**
+     * A class for intrinsic IDs
+     *
+     * @see com.j.klee.core.impl.ExecutorImpl##executeCall
+     */
+    public static final class Intrinsic {
+        public static final int NotIntrinsic = 0;
+        public static final int FAbs = 130;
     }
 }

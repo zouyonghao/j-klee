@@ -25,12 +25,12 @@ public class ExecutorUtil {
             System.out.println("undefined reference to function: " + LLVMUtils.getFunctionName(constant));
             return null;
         }
-        if (LLVMIsConstantString(constant) == 1) {
+        if (LLVMIsConstantString(constant) == LLVMUtils.True) {
             // TODO
             System.out.println("not support constant string for now");
             return null;
         }
-        if (LLVMIsGlobalConstant(constant) == 1) {
+        if (LLVMIsGlobalConstant(constant) == LLVMUtils.True) {
             // TODO
             System.out.println("not support global constant for now");
             return null;

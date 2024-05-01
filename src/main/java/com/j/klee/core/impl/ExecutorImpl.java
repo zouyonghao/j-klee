@@ -14,6 +14,7 @@ import com.j.klee.module.KModule;
 import com.j.klee.solver.Solver;
 import com.j.klee.utils.DataLayout;
 import com.j.klee.utils.LLVMUtils;
+import com.j.klee.utils.LLVMUtils.Intrinsic;
 import org.bytedeco.llvm.LLVM.LLVMBasicBlockRef;
 import org.bytedeco.llvm.LLVM.LLVMModuleRef;
 import org.bytedeco.llvm.LLVM.LLVMTypeRef;
@@ -32,14 +33,6 @@ import static org.bytedeco.llvm.global.LLVM.*;
 
 public class ExecutorImpl implements Executor {
 
-    private KModule kModule;
-
-    private SortedSet<ExecutionState> states = new TreeSet<>();
-
-    private boolean haltExecution = false;
-
-    private MemoryManager memoryManager = new MemoryManager();
-
     public enum MemOpType {MemOpRead, MemOpWrite, MemOpName, MemOpNop}
 
     public enum MemOpResult {MemOpSuccess, MemOpOOB, MemOpError}
@@ -47,6 +40,12 @@ public class ExecutorImpl implements Executor {
     public static class MemoryObjectHolder {
         public MemoryObject mo;
     }
+
+    private KModule kModule;
+    private SortedSet<ExecutionState> states = new TreeSet<>();
+    private boolean haltExecution = false;
+    private MemoryManager memoryManager = new MemoryManager();
+    private SpecialFunctionHandler specialFunctionHandler;
 
     @Override
     public void runFunctionAsMain(LLVMValueRef f, int argc, char[][] argv, char[][] envp) {
@@ -103,6 +102,7 @@ public class ExecutorImpl implements Executor {
 
     private void executeInstruction(ExecutionState state, KInstruction ki) {
         LLVMValueRef inst = ki.getInst();
+        LLVMUtils.dumpValue(inst);
         switch (LLVMGetInstructionOpcode(inst)) {
             case LLVMRet -> {
                 System.out.println("currently unsupported inst: ret");
@@ -143,13 +143,33 @@ public class ExecutorImpl implements Executor {
             case LLVMUnreachable -> {
                 // TODO: terminate state
                 System.out.println("run to unreachable code, end state " + state.id);
-                states.remove(state);
+                terminateState(state);
             }
-            case LLVMInvoke -> {
-                System.out.println("currently unsupported inst: invoke");
-            }
-            case LLVMCall -> {
-                System.out.println("currently unsupported inst: call");
+            case LLVMInvoke, LLVMCall -> {
+                if (LLVM.LLVMIsADbgInfoIntrinsic(inst) != null) {
+                    System.out.println("ignoring debug intrinsic call.");
+                    break;
+                }
+                LLVMValueRef f = LLVM.LLVMGetCalledValue(inst);
+
+                // TODO: Compute the true target of a function call, resolving LLVM aliases and bit casts
+
+                if (LLVM.LLVMIsAInlineAsm(f) != null) {
+                    System.out.println("run to inline asm, end state " + state.id);
+                    terminateState(state);
+                }
+
+                List<Expr> arguments = new ArrayList<>();
+                int numArgs = LLVMUtils.getFunctionArgumentSize(f);
+                // CallInst and InvokeInst operands are stored
+                // in a fixed order: function, arg0, arg1, ...
+                // @see KFunction
+                for (int j = 0; j < numArgs; j++) {
+                    arguments.add(eval(ki, j + 1, state).value);
+                }
+
+                // TODO: special case the call with a bit cast
+                executeCall(state, ki, f, arguments);
             }
             case LLVMPHI -> {
                 System.out.println("currently unsupported inst: phi");
@@ -295,6 +315,36 @@ public class ExecutorImpl implements Executor {
                 System.out.println("currently unsupported inst: " + LLVMGetInstructionOpcode(inst));
             }
         }
+    }
+
+    private void executeCall(ExecutionState state, KInstruction ki, LLVMValueRef f, List<Expr> arguments) {
+        if (f != null && LLVM.LLVMIsDeclaration(f) == LLVMUtils.True) {
+            System.out.println("function intrinsic id is " + LLVM.LLVMGetIntrinsicID(f));
+            switch (LLVM.LLVMGetIntrinsicID(f)) {
+                case Intrinsic.NotIntrinsic -> {
+                    callExternalFunction(state, ki, f, arguments);
+                }
+                case Intrinsic.FAbs -> {
+                    throw new IllegalStateException("not supported FAbs intrinsic function");
+                }
+                default -> {
+                    throw new IllegalStateException("not supported intrinsic function: " + LLVM.LLVMGetIntrinsicID(f));
+                }
+
+                // TODO: invoke inst
+            }
+        }
+    }
+
+    private void callExternalFunction(ExecutionState state, KInstruction target, LLVMValueRef f, List<Expr> arguments) {
+        if (specialFunctionHandler.handle(state, f, target, arguments)) {
+            return;
+        }
+        throw new IllegalStateException("no support for calling external functions");
+    }
+
+    public void terminateState(ExecutionState state) {
+        states.remove(state);
     }
 
     private StatePair fork(ExecutionState current, Expr condition, boolean isInternal, int conditionalBranch) {
@@ -490,9 +540,9 @@ public class ExecutorImpl implements Executor {
         // TODO: 2) apply different instrumentation
         // TODO: 3) optimise and prepare for KLEE
 
-        // preserve functions
+        // TODO: preserve functions
         List<String> preservedFunctions = new ArrayList<>();
-        SpecialFunctionHandler specialFunctionHandler = new SpecialFunctionHandlerImpl(this);
+        specialFunctionHandler = new SpecialFunctionHandlerImpl(this);
         specialFunctionHandler.prepare(preservedFunctions);
 
         preservedFunctions.add(moduleOptions.entryPoint);
