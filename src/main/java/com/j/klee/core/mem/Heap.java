@@ -14,15 +14,18 @@ public class Heap {
         objects.add(object);
     }
 
-    public ExecutorImpl.MemOpResult resolveOneExact(ExecutionState state, Expr address, ExecutorImpl.MemoryObjectHolder memoryObjectHolder) {
+    public ExecutorImpl.MemOpResult resolveOneExact(ExecutionState state, Expr address) {
+        ExecutorImpl.MemOpResult result = new ExecutorImpl.MemOpResult();
+        result.resultType = ExecutorImpl.MemOpResultType.MemOpError;
         for (MemoryObject object : objects) {
             if (object.address.equals(address)) {
-                memoryObjectHolder.mo = object;
-                System.out.println(memoryObjectHolder.mo.addressName);
-                return ExecutorImpl.MemOpResult.MemOpSuccess;
+                result.mo = object;
+                System.out.println(result.mo.addressName);
+                result.resultType = ExecutorImpl.MemOpResultType.MemOpSuccess;
+                return result;
             }
         }
-        return ExecutorImpl.MemOpResult.MemOpError;
+        return result;
     }
 
     public Heap() {

@@ -35,9 +35,10 @@ public class ExecutorImpl implements Executor {
 
     public enum MemOpType {MemOpRead, MemOpWrite, MemOpName, MemOpNop}
 
-    public enum MemOpResult {MemOpSuccess, MemOpOOB, MemOpError}
+    public enum MemOpResultType {MemOpSuccess, MemOpOOB, MemOpError}
 
-    public static class MemoryObjectHolder {
+    public static class MemOpResult {
+        public MemOpResultType resultType;
         public MemoryObject mo;
     }
 
@@ -410,7 +411,7 @@ public class ExecutorImpl implements Executor {
                 /* useHeapConstraints */ true,
                 /* useFZoneConstraints */ false,
                 /* fZoneIndex */ -1);
-        if (result == MemOpResult.MemOpSuccess) {
+        if (result.resultType == MemOpResultType.MemOpSuccess) {
             System.out.println("single resolution success");
             return;
         }
@@ -423,11 +424,10 @@ public class ExecutorImpl implements Executor {
             /**/ boolean useHeapConstraints,
             /**/ boolean useFZoneConstraints,
             /**/int fZoneIndex) {
-        MemoryObjectHolder memoryObjectHolder = new MemoryObjectHolder();
-        MemOpResult result = heap.resolveOneExact(state, address, memoryObjectHolder);
+        MemOpResult result = heap.resolveOneExact(state, address);
         // TODO: bounds checking
-        Expr offset = memoryObjectHolder.mo.getOffsetExpr(address);
-        executeInBoundsMemOp(state, state.heap, memOpType, memoryObjectHolder.mo, offset, address, value, target, name, type);
+        Expr offset = result.mo.getOffsetExpr(address);
+        executeInBoundsMemOp(state, state.heap, memOpType, result.mo, offset, address, value, target, name, type);
         System.out.println(result);
         return result;
     }
