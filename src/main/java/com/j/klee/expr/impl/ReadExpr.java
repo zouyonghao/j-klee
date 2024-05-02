@@ -6,7 +6,7 @@ import com.j.klee.expr.Expr;
 public class ReadExpr extends Expr {
 
     public UpdateList updates;
-    Expr index;
+    public Expr index;
 
     public ReadExpr(UpdateList ul, Expr index) {
         this.updates = ul;

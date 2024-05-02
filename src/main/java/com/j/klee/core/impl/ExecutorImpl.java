@@ -237,6 +237,12 @@ public class ExecutorImpl implements Executor {
                             System.out.println("currently unsupported icmp predicate: " + LLVM.LLVMGetICmpPredicate(inst));
                 }
             }
+            /*
+             * NOTE:
+             * For alloca instruction, we will allocate a memory object with an
+             * address, and we bind the address value to the target register.
+             * Later, we use the address to find the memory object.
+             */
             case LLVMAlloca -> {
                 System.out.println("executing alloca..." + state.pc.getKInst().getInfo().getLine());
                 LLVMTypeRef allocType = LLVMGetAllocatedType(inst);
