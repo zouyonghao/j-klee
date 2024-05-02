@@ -87,4 +87,8 @@ public class ConstantExpr extends Expr {
     public Expr extract(int off, Width w) {
         throw new IllegalStateException("Not implemented");
     }
+
+    public long getZExtValue() {
+        return LLVM.LLVMConstIntGetZExtValue(constIntValue);
+    }
 }
