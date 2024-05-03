@@ -8,7 +8,7 @@
 int entry() {
   unsigned char x, y;
 
-  // klee_make_symbolic(&x, sizeof x, "x");
+//   klee_make_symbolic(&x, sizeof x, "x");
 
   y = x;
 
@@ -18,6 +18,6 @@ int entry() {
     assert(y==10);
   }
 
-  klee_silent_exit(0);
+//  klee_silent_exit(0);
   return 0;
 }

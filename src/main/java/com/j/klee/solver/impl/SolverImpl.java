@@ -79,7 +79,7 @@ public class SolverImpl {
                 solver.assertExpr(construct(ctx, constraint));
             }
 
-            // solver.assertExpr(ctx.not(construct(ctx, query.expr)));
+            solver.assertExpr(ctx.not(construct(ctx, query.expr)));
             long solverTimeout = toDuration(1, DurationUnit.SECONDS);
             final KSolverStatus status = solver.check(solverTimeout);
             if (status == KSolverStatus.SAT) {

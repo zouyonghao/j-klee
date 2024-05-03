@@ -429,7 +429,6 @@ public class ExecutorImpl implements Executor {
                 /* useFZoneConstraints */ false,
                 /* fZoneIndex */ -1);
         if (result.resultType == MemOpResultType.MemOpSuccess) {
-            System.out.println("single resolution success");
             return;
         }
         throw new IllegalStateException("Could not resolve address: " + address);
@@ -445,7 +444,6 @@ public class ExecutorImpl implements Executor {
         // TODO: bounds checking
         Expr offset = result.mo.getOffsetExpr(address);
         executeInBoundsMemOp(state, state.heap, memOpType, result.mo, offset, address, value, target, name, type);
-        System.out.println(result);
         return result;
     }
 

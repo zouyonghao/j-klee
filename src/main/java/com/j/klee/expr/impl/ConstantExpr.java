@@ -63,7 +63,7 @@ public class ConstantExpr extends Expr {
     }
 
     public boolean isTrue() {
-        return getWidth() == Width.Bool; // TODO: value.getBoolValue() == true
+        return getWidth() == Width.Bool && getZExtValue() == 1;
     }
 
     @Override

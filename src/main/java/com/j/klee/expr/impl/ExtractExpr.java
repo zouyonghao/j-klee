@@ -5,8 +5,8 @@ import com.j.klee.expr.Expr;
 public class ExtractExpr extends Expr {
 
     public Expr expr;
-    int offset;
-    Width width;
+    public int offset;
+    public Width width;
 
     public ExtractExpr(Expr e, int o, Width w) {
         this.expr = e;

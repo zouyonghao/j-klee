@@ -20,7 +20,6 @@ public class Heap {
         for (MemoryObject object : objects) {
             if (object.address.equals(address)) {
                 result.mo = object;
-                System.out.println(result.mo.addressName);
                 result.resultType = ExecutorImpl.MemOpResultType.MemOpSuccess;
                 return result;
             }

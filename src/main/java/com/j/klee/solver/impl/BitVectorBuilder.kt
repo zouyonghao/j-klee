@@ -3,13 +3,18 @@ package com.j.klee.solver.impl
 import com.j.klee.core.mem.UpdateList
 import com.j.klee.expr.Expr
 import com.j.klee.expr.Expr.Width
+import com.j.klee.expr.impl.*
+import com.j.klee.expr.impl.BinaryExpr.AddExpr
+import com.j.klee.expr.impl.BinaryExpr.SubExpr
 import com.j.klee.expr.impl.CmpExpr.EqExpr
-import com.j.klee.expr.impl.ConstantExpr
-import com.j.klee.expr.impl.ReadExpr
 import com.j.klee.solver.Builder
 import io.ksmt.KContext
 import io.ksmt.expr.KExpr
+import io.ksmt.sort.KArraySort
 import io.ksmt.sort.KBoolSort
+import io.ksmt.sort.KBvSort
+import io.ksmt.sort.KSort
+import io.ksmt.utils.BvUtils.bvZero
 
 /**
  * We use Kotlin for this file because we need many functions in
@@ -27,58 +32,124 @@ class BitVectorBuilder(private val ctx: KContext) : Builder {
         return result as KExpr<KBoolSort>
     }
 
-    private fun constructActual(e: Expr, _width: WidthReference?): KExpr<*>? {
+    // TODO: there are so many casts for the type system...
+    private fun constructActual(e: Expr, _width: WidthReference): KExpr<*> {
+        println("\nConstructing expr:")
+        e.print()
         var width = _width
-        if (width == null) {
-            width = WidthReference()
-        }
+        var result: KExpr<*>? = null
         when (e) {
             is ConstantExpr -> {
-                // if (width.width == Expr.Width.Bool) {
-                //     return constantExpr.isTrue() ? ctx.mkTrue() : ctx.mkFalse();
-                // }
-                // TODO: int32?
-                if (width.width?.width!! <= Expr.Width.Int64.width) {
-                    return ctx.mkBv(e.zExtValue);
+                width.width = e.width
+                if (width.width == Width.Bool) {
+                    return if (e.isTrue) {
+                        ctx.mkTrue()
+                    } else {
+                        ctx.mkFalse()
+                    }
                 }
+                // TODO: int32?
+                result = ctx.mkBv(e.zExtValue, width.width!!.width.toUInt());
                 // TODO: larger constant
             }
 
             is ReadExpr -> {
                 width.width = e.updates.root.range;
-                return readExpr(getArrayForUpdate(e.updates.root, e.updates.head), constructActual(e.index, null));
+                result = readExpr(
+                    getArrayForUpdate(e.updates.root, e.updates.head),
+                    constructActual(e.index, /* not used */ WidthReference())
+                )
             }
 
             is EqExpr -> {
-                println("construct eq");
-                e.print();
-                println(e.getWidth());
+                val left = constructActual(e.left, width)
+                val right = constructActual(e.right, width)
+                width.width = Width.Bool
+                result = ctx.mkEqNoSimplify(left as KExpr<KSort>, right as KExpr<KSort>)
+            }
+
+            is ZExtExpr -> {
+                val srcWidth = WidthReference()
+                val src = constructActual(e.src, srcWidth)
+                width.width = e.getWidth()
+                // TODO: width is bool
+                // TODO: width > srcWidth -> invalid width
+                result = ctx.mkBvConcatExpr(
+                    ctx.bvZero((width.width!!.width - srcWidth.width!!.width).toUInt()), src as KExpr<KBvSort>
+                )
+            }
+
+            is ExtractExpr -> {
+                val src = constructActual(e.expr, width)
+                // TODO: bool extract
+                width.width = e.width
+                result = ctx.mkBvExtractExpr(e.offset + width.width!!.width - 1, e.offset, src as KExpr<KBvSort>)
+            }
+
+            is AddExpr -> {
+                val left = constructActual(e.left, width)
+                val right = constructActual(e.right, width)
+                result = ctx.mkBvAddExpr(left as KExpr<KBvSort>, right as KExpr<KBvSort>)
+            }
+
+            is SubExpr -> {
+                val left = constructActual(e.left, width)
+                val right = constructActual(e.right, width)
+                result = ctx.mkBvSubExpr(left as KExpr<KBvSort>, right as KExpr<KBvSort>)
+            }
+
+            is AddressExpr -> {
+                result = addressExpr(e)
+                width.width = e.width
             }
 
             else -> throw IllegalStateException("Unexpected value: $e");
         }
-        return ctx.mkTrue();
+        println("\nresult is: ")
+        val sb = StringBuilder()
+        result!!.print(sb)
+        println(sb)
+        return result;
     }
 
-    private fun readExpr(arrayForUpdate: KExpr<*>?, kExpr: KExpr<*>?): KExpr<*>? {
-        return null;
+    private val addressExprMap: MutableMap<String, KExpr<*>> = HashMap();
+    private fun addressExpr(e: AddressExpr): KExpr<*> {
+        val addressName = "address-" + e.addressName
+        if (addressExprMap.containsKey(addressName)) {
+            return addressExprMap[addressName]!!
+        } else {
+            val t = ctx.mkBvSort(e.width.width.toUInt())
+            val addressBV = ctx.mkConst(addressName, t)
+            addressExprMap[addressName] = addressBV
+            return addressBV
+        }
     }
 
-    private fun getArrayForUpdate(root: UpdateList.Array, un: UpdateList.UpdateNode?): KExpr<*>? {
+    private fun readExpr(arrayForUpdate: KExpr<*>, index: KExpr<*>): KExpr<*> {
+        return ctx.mkArraySelect(arrayForUpdate as KExpr<KArraySort<KSort, KSort>>, index as KExpr<KSort>)
+    }
+
+    private fun getArrayForUpdate(
+        root: UpdateList.Array, un: UpdateList.UpdateNode?
+    ): KExpr<*> {
         if (un == null) {
             return getInitialArray(root);
         } else {
             // TODO: array hash
             return writeExpr(
                 getArrayForUpdate(root, un.next),
-                constructActual(un.index, null),
-                constructActual(un.value, null)
+                constructActual(un.index, /* not used */ WidthReference()),
+                constructActual(un.value, /* not used */ WidthReference())
             );
         }
     }
 
-    private fun writeExpr(arrayForUpdate: KExpr<*>?, kExpr: KExpr<*>?, kExpr1: KExpr<*>?): KExpr<*>? {
-        return null;
+    private fun writeExpr(
+        arrayForUpdate: KExpr<*>, index: KExpr<*>, value: KExpr<*>
+    ): KExpr<*> {
+        return ctx.mkArrayStore(
+            arrayForUpdate as KExpr<KArraySort<KSort, KSort>>, index as KExpr<KSort>, value as KExpr<KSort>
+        );
     }
 
     private val arrayExprMap: MutableMap<String, KExpr<*>?> = HashMap();
@@ -86,7 +157,7 @@ class BitVectorBuilder(private val ctx: KContext) : Builder {
     private fun getInitialArray(root: UpdateList.Array): KExpr<*> {
         // TODO: array hash
         if (arrayExprMap.containsKey(root.name)) {
-            return arrayExprMap.get(root.name)!!
+            return arrayExprMap[root.name]!!
         } else {
             // Z3SortHandle domainSort = getArgumentSort(indexWidth);
             // Z3SortHandle rangeSort = getArgumentSort(valueWidth);
