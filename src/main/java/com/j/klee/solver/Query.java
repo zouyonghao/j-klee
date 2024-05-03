@@ -1,6 +1,7 @@
 package com.j.klee.solver;
 
 import com.j.klee.expr.Expr;
+import com.j.klee.expr.impl.BoolNotExpr;
 import com.j.klee.expr.impl.ConstantExpr;
 
 import java.util.List;
@@ -24,6 +25,10 @@ public class Query {
 
     public Query negateExpr() {
         return withExpr(Expr.createIsZero(expr));
+    }
+
+    public Query notExpr() {
+        return withExpr(BoolNotExpr.create(expr));
     }
 
     // TODO: dump

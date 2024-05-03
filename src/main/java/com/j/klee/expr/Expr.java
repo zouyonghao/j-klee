@@ -39,13 +39,16 @@ public abstract class Expr {
         ZExt, SExt,
 
         // bit
-        Not,
+        BitNot,
 
         // binary
         Add, Sub, Mul, UDiv, SDiv, URem, SRem,
 
         // bit
-        And, Or, Xor, Shl, LShr, AShr,
+        BitAnd, BitOr, Xor, Shl, LShr, AShr,
+
+        // bool
+        BoolNot, BoolAnd, BoolOr,
 
         // compare
         Eq, Ne, Ult, Ule, Slt, Sle, Sgt, Sge;

@@ -36,7 +36,7 @@ public class SolverImpl {
         if (computeTruthResult.isValid) {
             result.validity = Solver.Validity.True;
         } else {
-            computeTruthResult = computeTruth(query.negateExpr());
+            computeTruthResult = computeTruth(query.notExpr());
             result.solved = computeTruthResult.solved;
             if (!result.solved) {
                 return result;

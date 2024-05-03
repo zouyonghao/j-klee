@@ -28,33 +28,24 @@ class BitVectorBuilder(private val ctx: KContext) : Builder {
 
     override fun construct(e: Expr): KExpr<KBoolSort> {
         val width = WidthReference()
-        val result: KExpr<*>? = constructActual(e, width)
+        val result: KExpr<*> = constructActual(e, width)
         return result as KExpr<KBoolSort>
     }
 
     // TODO: there are so many casts for the type system...
-    private fun constructActual(e: Expr, _width: WidthReference): KExpr<*> {
+    private fun constructActual(e: Expr, widthRef: WidthReference): KExpr<*> {
         println("\nConstructing expr:")
         e.print()
-        var width = _width
-        var result: KExpr<*>? = null
+        val result: KExpr<*>?
         when (e) {
             is ConstantExpr -> {
-                width.width = e.width
-                if (width.width == Width.Bool) {
-                    return if (e.isTrue) {
-                        ctx.mkTrue()
-                    } else {
-                        ctx.mkFalse()
-                    }
-                }
-                // TODO: int32?
-                result = ctx.mkBv(e.zExtValue, width.width!!.width.toUInt());
-                // TODO: larger constant
+                widthRef.width = e.width
+                result = ctx.mkBv(e.zExtValue, widthRef.width!!.width.toUInt());
+                // TODO: larger constant?
             }
 
             is ReadExpr -> {
-                width.width = e.updates.root.range;
+                widthRef.width = e.updates.root.range;
                 result = readExpr(
                     getArrayForUpdate(e.updates.root, e.updates.head),
                     constructActual(e.index, /* not used */ WidthReference())
@@ -62,52 +53,57 @@ class BitVectorBuilder(private val ctx: KContext) : Builder {
             }
 
             is EqExpr -> {
-                val left = constructActual(e.left, width)
-                val right = constructActual(e.right, width)
-                width.width = Width.Bool
+                val left = constructActual(e.left, widthRef)
+                val right = constructActual(e.right, widthRef)
+                widthRef.width = Width.Bool
                 result = ctx.mkEqNoSimplify(left as KExpr<KSort>, right as KExpr<KSort>)
             }
 
             is ZExtExpr -> {
                 val srcWidth = WidthReference()
                 val src = constructActual(e.src, srcWidth)
-                width.width = e.getWidth()
+                widthRef.width = e.getWidth()
                 // TODO: width is bool
                 // TODO: width > srcWidth -> invalid width
                 result = ctx.mkBvConcatExpr(
-                    ctx.bvZero((width.width!!.width - srcWidth.width!!.width).toUInt()), src as KExpr<KBvSort>
+                    ctx.bvZero((widthRef.width!!.width - srcWidth.width!!.width).toUInt()), src as KExpr<KBvSort>
                 )
             }
 
             is ExtractExpr -> {
-                val src = constructActual(e.expr, width)
+                val src = constructActual(e.expr, widthRef)
                 // TODO: bool extract
-                width.width = e.width
-                result = ctx.mkBvExtractExpr(e.offset + width.width!!.width - 1, e.offset, src as KExpr<KBvSort>)
+                widthRef.width = e.width
+                result = ctx.mkBvExtractExpr(e.offset + widthRef.width!!.width - 1, e.offset, src as KExpr<KBvSort>)
             }
 
             is AddExpr -> {
-                val left = constructActual(e.left, width)
-                val right = constructActual(e.right, width)
+                val left = constructActual(e.left, widthRef)
+                val right = constructActual(e.right, widthRef)
                 result = ctx.mkBvAddExpr(left as KExpr<KBvSort>, right as KExpr<KBvSort>)
             }
 
             is SubExpr -> {
-                val left = constructActual(e.left, width)
-                val right = constructActual(e.right, width)
+                val left = constructActual(e.left, widthRef)
+                val right = constructActual(e.right, widthRef)
                 result = ctx.mkBvSubExpr(left as KExpr<KBvSort>, right as KExpr<KBvSort>)
             }
 
             is AddressExpr -> {
                 result = addressExpr(e)
-                width.width = e.width
+                widthRef.width = e.width
+            }
+
+            is BoolNotExpr -> {
+                result = ctx.mkNot(construct(e.src))
+                widthRef.width = Width.Bool
             }
 
             else -> throw IllegalStateException("Unexpected value: $e");
         }
         println("\nresult is: ")
         val sb = StringBuilder()
-        result!!.print(sb)
+        result.print(sb)
         println(sb)
         return result;
     }
