@@ -99,7 +99,7 @@ public class LLVMUtils {
         return LLVMGetBasicBlockParent(LLVMGetInstructionParent(inst));
     }
 
-    public static LLVMValueRef getAPIntFromInt(int v, int width) {
+    public static LLVMValueRef getAPIntFromLong(long v, int width) {
         LLVMContextRef context = LLVMContextCreate();
         LLVMTypeRef intType = LLVMIntTypeInContext(context, width);
         return LLVMConstInt(intType, v, 0);

@@ -4,6 +4,7 @@ import com.j.klee.expr.impl.ConstantExpr;
 import com.j.klee.module.KInstruction;
 import com.j.klee.utils.LLVMUtils;
 import org.bytedeco.javacpp.BytePointer;
+import org.bytedeco.llvm.LLVM.LLVMBasicBlockRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
 import org.bytedeco.llvm.global.LLVM;
 
@@ -21,8 +22,8 @@ public class ExecutorUtil {
             return new ConstantExpr(constant);
         }
         if (LLVMIsAFunction(constant) != null) {
-            assert (LLVMUtils.isDeclaration(constant));
-            System.out.println("undefined reference to function: " + LLVMUtils.getFunctionName(constant));
+            boolean isDeclaration = LLVMUtils.isDeclaration(constant);
+            System.out.println("undefined reference to function: " + LLVMUtils.getFunctionName(constant) + (isDeclaration ? ", it's a function declaration." : ""));
             return null;
         }
         if (LLVMIsConstantString(constant) == LLVMUtils.True) {
@@ -39,6 +40,13 @@ public class ExecutorUtil {
             // TODO
             System.out.println("not support MD node for now");
             return null;
+        }
+        if (LLVM.LLVMIsABlockAddress(constant) != null) {
+            System.out.println("a block address ptr...");
+            LLVMBasicBlockRef bb = LLVM.LLVMValueAsBasicBlock(LLVM.LLVMGetOperand(constant, 1));
+            assert (bb != null);
+            System.out.println(bb.getPointer().address());
+            return (ConstantExpr) ConstantExpr.createPointer(bb.getPointer().address());
         }
         System.out.println("not supported constant: " + LLVMPrintTypeToString(LLVMTypeOf(constant)).getString());
         try (BytePointer bp = LLVMPrintValueToString(constant)) {

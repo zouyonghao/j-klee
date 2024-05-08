@@ -14,8 +14,8 @@ public class ConstantExpr extends Expr {
 
     LLVMValueRef constIntValue;
 
-    public ConstantExpr(int value, Width width) {
-        constIntValue = LLVMUtils.getAPIntFromInt(value, width.getWidth());
+    public ConstantExpr(long value, Width width) {
+        constIntValue = LLVMUtils.getAPIntFromLong(value, width.getWidth());
     }
 
     public ConstantExpr(LLVMValueRef constIntValue) {
@@ -76,11 +76,11 @@ public class ConstantExpr extends Expr {
         return alloc(v, width);
     }
 
-    public static Expr createPointer(int byteSize, Width width) {
-        return alloc(byteSize, width);
+    public static Expr createPointer(long value, Width width) {
+        return alloc(value, width);
     }
 
-    public static ConstantExpr alloc(int value, Width width) {
+    public static ConstantExpr alloc(long value, Width width) {
         return new ConstantExpr(value, width);
     }
 

@@ -56,7 +56,7 @@ public class ExecutorImpl implements Executor {
 
         KFunction kf = kModule.getFunctionMap().get(f);
         assert (kf != null);
-        assert (getFunctionArgumentSize(f) == 0);
+        // assert (getFunctionArgumentSize(f) == 0);
 
         ExecutionState state = new ExecutionState(kModule.getFunctionMap().get(f));
 

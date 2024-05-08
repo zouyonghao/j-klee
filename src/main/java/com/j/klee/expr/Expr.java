@@ -10,7 +10,11 @@ public abstract class Expr {
 
     // Int64 can indicate i64, double or <2 * i32> in different cases.
     public enum Width {
-        InvalidWidth(0), Bool(1), Int8(8), Int16(16), Int32(32), Int64(64), Fl80(80), Int128(128), Int256(256), Int512(512), MaxWidth(512);
+        InvalidWidth(0), Bool(1), Int8(8), Int16(16), Int32(32), Int64(64), Fl80(80), Int128(128), Int256(256), Int512(512), MaxWidth(512), //
+        /*
+         * Temp width...
+         */
+        Temp24(24), Temp40(40), Temp48(48), Temp56(56), Temp72(72);
 
         private final int width;
 
@@ -122,8 +126,8 @@ public abstract class Expr {
 
     // TODO: Kind utilities
 
-    public static Expr createPointer(int byteSize) {
-        return ConstantExpr.createPointer(byteSize, Context.get().getPointerWidth());
+    public static Expr createPointer(long value) {
+        return ConstantExpr.createPointer(value, Context.get().getPointerWidth());
     }
 
     public static Expr createIsZero(Expr condition) {
