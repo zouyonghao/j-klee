@@ -126,7 +126,7 @@ public abstract class Expr {
 
     // TODO: Kind utilities
 
-    public static Expr createPointer(long value) {
+    public static ConstantExpr createPointer(long value) {
         return ConstantExpr.createPointer(value, Context.get().getPointerWidth());
     }
 

@@ -1,0 +1,18 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="AddressOfLabels" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="com.j.klee.Main" />
+    <module name="j-klee" />
+    <option name="PROGRAM_PARAMETERS" value="AddressOfLabels.ll" />
+    <option name="VM_PARAMETERS" value="-ea" />
+    <option name="WORKING_DIRECTORY" value="examples/feature" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="com.j.klee.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

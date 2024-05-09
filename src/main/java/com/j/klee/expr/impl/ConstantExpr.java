@@ -76,7 +76,7 @@ public class ConstantExpr extends Expr {
         return alloc(v, width);
     }
 
-    public static Expr createPointer(long value, Width width) {
+    public static ConstantExpr createPointer(long value, Width width) {
         return alloc(value, width);
     }
 

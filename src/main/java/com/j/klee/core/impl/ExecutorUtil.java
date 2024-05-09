@@ -34,7 +34,8 @@ public class ExecutorUtil {
         if (LLVMIsGlobalConstant(constant) == LLVMUtils.True) {
             // TODO
             System.out.println("not support global constant for now");
-            return null;
+            LLVMUtils.registerAddress(constant.address(), constant);
+            return ConstantExpr.createPointer(constant.address());
         }
         if (LLVMIsAMDNode(constant) != null) {
             // TODO
@@ -46,7 +47,8 @@ public class ExecutorUtil {
             LLVMBasicBlockRef bb = LLVM.LLVMValueAsBasicBlock(LLVM.LLVMGetOperand(constant, 1));
             assert (bb != null);
             System.out.println(bb.getPointer().address());
-            return (ConstantExpr) ConstantExpr.createPointer(bb.getPointer().address());
+            LLVMUtils.registerAddress(bb.getPointer().address(), LLVM.LLVMGetOperand(constant, 1));
+            return ConstantExpr.createPointer(bb.getPointer().address());
         }
         System.out.println("not supported constant: " + LLVMPrintTypeToString(LLVMTypeOf(constant)).getString());
         try (BytePointer bp = LLVMPrintValueToString(constant)) {

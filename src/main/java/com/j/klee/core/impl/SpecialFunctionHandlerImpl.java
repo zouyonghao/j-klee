@@ -4,9 +4,11 @@ import com.j.klee.core.ExecutionState;
 import com.j.klee.core.Executor;
 import com.j.klee.core.SpecialFunctionHandler;
 import com.j.klee.expr.Expr;
+import com.j.klee.expr.impl.ConstantExpr;
 import com.j.klee.module.KInstruction;
 import com.j.klee.utils.LLVMUtils;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
+import org.bytedeco.llvm.global.LLVM;
 
 import java.util.AbstractMap;
 import java.util.HashMap;
@@ -20,11 +22,7 @@ public class SpecialFunctionHandlerImpl implements SpecialFunctionHandler {
 
     Executor executor;
 
-    private final Map<String, FunctionHandler> handlerInfo = Map.ofEntries(
-            Map.entry("__assert_fail", new AssertFailHandler()),
-            Map.entry("klee_silent_exit", new SilentExitHandler()),
-            Map.entry("abort", new AbortFunctionHandler())
-    );
+    private final Map<String, FunctionHandler> handlerInfo = Map.ofEntries(Map.entry("__assert_fail", new AssertFailHandler()), Map.entry("klee_silent_exit", new SilentExitHandler()), Map.entry("abort", new AbortFunctionHandler()), Map.entry("puts", new PutsFunctionHandler()));
 
     private final Map<LLVMValueRef, Map.Entry<FunctionHandler, Boolean>> handlers = new HashMap<>();
 
@@ -147,6 +145,32 @@ public class SpecialFunctionHandlerImpl implements SpecialFunctionHandler {
         @Override
         public void handle(ExecutionState state, KInstruction target, List<Expr> arguments) {
             executor.terminateState(state);
+        }
+
+        @Override
+        public boolean doesNotReturn() {
+            return true;
+        }
+
+        @Override
+        public boolean hasReturnValue() {
+            return false;
+        }
+
+        @Override
+        public boolean doNotOverride() {
+            return false;
+        }
+    }
+
+    static class PutsFunctionHandler implements FunctionHandler {
+        @Override
+        public void handle(ExecutionState state, KInstruction target, List<Expr> arguments) {
+            System.out.println("calling puts...");
+            LLVMValueRef argument = LLVMUtils.getValueFromAddress(((ConstantExpr) arguments.getFirst()).getZExtValue());
+            assert (argument != null);
+            String argString = LLVMUtils.getStringFromLLVMValue(argument);
+            System.out.println(argString);
         }
 
         @Override

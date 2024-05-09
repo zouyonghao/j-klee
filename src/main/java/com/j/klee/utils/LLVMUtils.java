@@ -1,12 +1,11 @@
 package com.j.klee.utils;
 
-import com.j.klee.core.ExecutionState;
-import com.j.klee.module.KInstruction;
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.llvm.LLVM.*;
 import org.bytedeco.llvm.global.LLVM;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.bytedeco.llvm.global.LLVM.*;
 
@@ -139,5 +138,45 @@ public class LLVMUtils {
     public static final class Intrinsic {
         public static final int NotIntrinsic = 0;
         public static final int FAbs = 130;
+    }
+
+    public static String getStringFromLLVMValue(LLVMValueRef globalVar) {
+        if (null == LLVMIsAGlobalVariable(globalVar)) {
+            throw new IllegalArgumentException("LLVM String value should be global.");
+        }
+
+        // Get the initializer of the global variable
+        LLVMValueRef initializer = LLVMGetInitializer(globalVar);
+        if (null == initializer || null == LLVMIsAConstantDataSequential(initializer)) {
+            throw new IllegalArgumentException("Error: Global variable does not have a proper initializer.");
+        }
+
+        // Check if the initializer is a constant array
+        if (null != LLVMIsAConstantArray(initializer) || null != LLVMIsAConstantDataArray(initializer)) {
+            long length = LLVMGetArrayLength2(LLVMTypeOf(initializer));
+            StringBuilder result = new StringBuilder();
+            for (long i = 0; i < length; i++) {
+                LLVMValueRef elem = LLVMGetAggregateElement(initializer, (int) i);
+                char character = (char) LLVMConstIntGetZExtValue(elem);
+                if (character != 0) {
+                    result.append(character);
+                } else {
+                    break;
+                }
+            }
+            return result.toString();
+        }
+
+        throw new IllegalArgumentException("initializer is not a constant array");
+    }
+
+    public static final Map<Long, LLVMValueRef> ADDRESS_LLVM_VALUE_MAP = new HashMap<>();
+
+    public static void registerAddress(long address, LLVMValueRef value) {
+        ADDRESS_LLVM_VALUE_MAP.put(address, value);
+    }
+
+    public static LLVMValueRef getValueFromAddress(long address) {
+        return ADDRESS_LLVM_VALUE_MAP.get(address);
     }
 }
