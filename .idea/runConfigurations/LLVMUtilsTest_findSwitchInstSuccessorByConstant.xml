@@ -1,0 +1,18 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="LLVMUtilsTest.findSwitchInstSuccessorByConstant" type="JUnit" factoryName="JUnit" nameIsGenerated="true">
+    <module name="j-klee" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="com.j.klee.utils.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <option name="PACKAGE_NAME" value="com.j.klee.utils" />
+    <option name="MAIN_CLASS_NAME" value="com.j.klee.utils.LLVMUtilsTest" />
+    <option name="METHOD_NAME" value="findSwitchInstSuccessorByConstant" />
+    <option name="TEST_OBJECT" value="method" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

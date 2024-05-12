@@ -179,4 +179,24 @@ public class LLVMUtils {
     public static LLVMValueRef getValueFromAddress(long address) {
         return ADDRESS_LLVM_VALUE_MAP.get(address);
     }
+
+    // For switch instruction
+    public static LLVMBasicBlockRef findSwitchInstSuccessorByConstant(LLVMValueRef inst, long longValue) {
+        assert (LLVMIsASwitchInst(inst) != null);
+        // switch i32 %6, label %10 [
+        //         i32 1, label %7
+        //         i32 2, label %8
+        // ]
+        // Num of operands = 6
+        // %6 (cond), %10 (default), 1, %7, 2, %8
+        int numOperands = LLVMGetNumOperands(inst);
+        assert (numOperands > 3);
+        for (int i = 2; i < numOperands; i += 2) {
+            long caseValue = LLVMConstIntGetZExtValue(LLVMGetOperand(inst, i));
+            if (caseValue == longValue) {
+                return LLVMValueAsBasicBlock(LLVMGetOperand(inst, i + 1));
+            }
+        }
+        throw new IllegalArgumentException("Error: invalid switch constant");
+    }
 }

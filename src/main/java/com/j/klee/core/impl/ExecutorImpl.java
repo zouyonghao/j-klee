@@ -6,6 +6,7 @@ import com.j.klee.core.mem.MemoryManager;
 import com.j.klee.core.mem.MemoryObject;
 import com.j.klee.expr.Expr;
 import com.j.klee.expr.impl.CmpExpr.EqExpr;
+import com.j.klee.expr.impl.ConstantExpr;
 import com.j.klee.expr.impl.ZExtExpr;
 import com.j.klee.module.Cell;
 import com.j.klee.module.KFunction;
@@ -28,7 +29,6 @@ import java.util.TreeSet;
 
 import static com.j.klee.core.impl.ExecutorUtil.evalConstant;
 import static com.j.klee.expr.Expr.Width.getWidthFromInt;
-import static com.j.klee.utils.LLVMUtils.getFunctionArgumentSize;
 import static org.bytedeco.llvm.global.LLVM.*;
 
 public class ExecutorImpl implements Executor {
@@ -140,7 +140,24 @@ public class ExecutorImpl implements Executor {
                 System.out.println("currently unsupported inst: indirect");
             }
             case LLVMSwitch -> {
-                System.out.println("currently unsupported inst: switch");
+                // switch i32 %6, label %10 [
+                //         i32 1, label %7
+                //         i32 2, label %8
+                // ]
+                // Num of operands = 6
+                // %6 (cond), %10 (default), 1, %7, 2, %8
+                Expr cond = eval(ki, 0, state).value;
+                LLVMDumpValue(ki.getInst());
+                int numOperands = LLVMGetNumOperands(ki.getInst());
+                for (int j = 0; j < numOperands; j++) {
+                    LLVMDumpValue(LLVMGetOperand(ki.getInst(), j));
+                }
+                System.out.println(LLVMUtils.findSwitchInstSuccessorByConstant(ki.getInst(), 2));
+                if (cond instanceof ConstantExpr) {
+                    long longValue = ((ConstantExpr) cond).getZExtValue();
+                    LLVMBasicBlockRef bb = LLVMUtils.findSwitchInstSuccessorByConstant(ki.getInst(), longValue);
+                    transferToBasicBlock(bb, LLVMGetInstructionParent(ki.getInst()), state);
+                }
             }
             case LLVMUnreachable -> {
                 // TODO: terminate state
