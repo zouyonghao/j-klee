@@ -4,7 +4,7 @@ import com.j.klee.core.mem.UpdateList;
 import com.j.klee.expr.Expr;
 import com.j.klee.solver.Builder;
 import com.j.klee.solver.Query;
-import com.j.klee.solver.Solver;
+import com.j.klee.solver.Solver.Validity;
 import io.ksmt.KContext;
 import io.ksmt.expr.KExpr;
 import io.ksmt.solver.KSolver;
@@ -21,49 +21,31 @@ public class SolverImpl {
 
     private Builder builder;
 
-    public static class ComputeTruthResult {
-        public boolean solved;
-        public boolean isValid;
-    }
-
-    public Solver.SolverEvaluateResult evaluate(Query query) {
-        Solver.SolverEvaluateResult result = new Solver.SolverEvaluateResult(false, Solver.Validity.Unknown);
-        ComputeTruthResult computeTruthResult = computeTruth(query);
-        result.solved = computeTruthResult.solved;
-        if (!result.solved) {
-            return result;
-        }
-        if (computeTruthResult.isValid) {
-            result.validity = Solver.Validity.True;
+    public Validity evaluate(Query query) {
+        Validity result;
+        boolean isValid = computeTruth(query);
+        if (isValid) {
+            result = Validity.True;
         } else {
-            computeTruthResult = computeTruth(query.notExpr());
-            result.solved = computeTruthResult.solved;
-            if (!result.solved) {
-                return result;
+            isValid = computeTruth(query.notExpr());
+            if (isValid) {
+                result = Validity.False;
             } else {
-                if (computeTruthResult.isValid) {
-                    result.validity = Solver.Validity.False;
-                } else {
-                    result.validity = Solver.Validity.Unknown;
-                }
+                result = Validity.Unknown;
             }
         }
 
         return result;
     }
 
-    private ComputeTruthResult computeTruth(Query query) {
-        ComputeTruthResult result = new ComputeTruthResult();
-        result.solved = true;
+    public boolean mustBeTrue(Query query) {
+        return computeTruth(query);
+    }
+
+    private boolean computeTruth(Query query) {
         boolean hasSolution;
-        try {
-            hasSolution = internalRunSolver(query, null, null);
-            result.isValid = !hasSolution;
-        } catch (Exception e) {
-            result.solved = false;
-            throw e;
-        }
-        return result;
+        hasSolution = internalRunSolver(query, null, null);
+        return !hasSolution;
     }
 
     /**

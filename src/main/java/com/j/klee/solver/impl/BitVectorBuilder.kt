@@ -6,6 +6,7 @@ import com.j.klee.expr.Expr.Width
 import com.j.klee.expr.impl.*
 import com.j.klee.expr.impl.BinaryExpr.AddExpr
 import com.j.klee.expr.impl.BinaryExpr.SubExpr
+import com.j.klee.expr.impl.BoolBinaryExpr.BoolAndExpr
 import com.j.klee.expr.impl.CmpExpr.EqExpr
 import com.j.klee.solver.Builder
 import io.ksmt.KContext
@@ -34,9 +35,9 @@ class BitVectorBuilder(private val ctx: KContext) : Builder {
 
     // TODO: there are so many casts for the type system...
     private fun constructActual(e: Expr, widthRef: WidthReference): KExpr<*> {
-        println("\nConstructing expr:")
-        e.print()
-        val result: KExpr<*>?
+        // println("\nConstructing expr:")
+        // e.print()
+        var result: KExpr<*>?
         when (e) {
             is ConstantExpr -> {
                 widthRef.width = e.width
@@ -99,13 +100,35 @@ class BitVectorBuilder(private val ctx: KContext) : Builder {
                 widthRef.width = Width.Bool
             }
 
+            is ConcatExpr -> {
+                val numKids = e.numKinds
+                result = constructActual(e.getKid(numKids - 1), WidthReference())
+                for (j in numKids - 2 downTo 0) {
+                    result = ctx.mkBvConcatExpr(
+                        constructActual(e.getKid(j), WidthReference()) as KExpr<KBvSort>,
+                        result as KExpr<KBvSort>
+                    )
+                }
+                widthRef.width = e.width
+            }
+
+            is BoolAndExpr -> {
+                val left = constructActual(e.left, widthRef)
+                val right = constructActual(e.right, widthRef)
+                result = ctx.mkAnd(left as KExpr<KBoolSort>, right as KExpr<KBoolSort>)
+            }
+
+            is BoolExpr -> {
+                result = if (e.isTrue) ctx.mkTrue() else ctx.mkFalse()
+            }
+
             else -> throw IllegalStateException("Unexpected value: $e");
         }
-        println("\nresult is: ")
-        val sb = StringBuilder()
-        result.print(sb)
-        println(sb)
-        return result;
+       // println("\nresult is: ")
+       // val sb = StringBuilder()
+       // result!!.print(sb)
+       // println(sb)
+        return result!!
     }
 
     private val addressExprMap: MutableMap<String, KExpr<*>> = HashMap();

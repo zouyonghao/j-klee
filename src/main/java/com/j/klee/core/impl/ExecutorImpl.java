@@ -147,10 +147,11 @@ public class ExecutorImpl implements Executor {
                 // Num of operands = 6
                 // %6 (cond), %10 (default), 1, %7, 2, %8
                 Expr cond = eval(ki, 0, state).value;
+                LLVMBasicBlockRef bb = LLVM.LLVMGetInstructionParent(inst);
                 if (cond instanceof ConstantExpr) {
                     long longValue = ((ConstantExpr) cond).getZExtValue();
-                    LLVMBasicBlockRef bb = LLVMUtils.findSwitchInstSuccessorByConstant(ki.getInst(), longValue);
-                    transferToBasicBlock(bb, LLVMGetInstructionParent(ki.getInst()), state);
+                    LLVMBasicBlockRef caseBB = LLVMUtils.findSwitchInstSuccessorByConstant(ki.getInst(), longValue);
+                    transferToBasicBlock(caseBB, LLVMGetInstructionParent(ki.getInst()), state);
                 } else {
                     // Handle possible different branch targets
 
@@ -158,7 +159,7 @@ public class ExecutorImpl implements Executor {
                     // - each case value is mutual exclusive to all other values
                     // - order of case branches is based on the order of the expressions of
                     //   the case values, still default is handled last
-                    List<LLVMBasicBlockRef> bbOrder = new ArrayList<>();
+                    // List<LLVMBasicBlockRef> bbOrder = new ArrayList<>(); // TODO: do we need this?
                     Map<LLVMBasicBlockRef, Expr> branchTargets = new HashMap<>();
                     Map<Expr, LLVMBasicBlockRef> expressionOrder = new HashMap<>();
 
@@ -185,7 +186,37 @@ public class ExecutorImpl implements Executor {
                         }
 
                         Expr match = EqExpr.create(cond, caseEntry.getKey());
+
+                        // Make sure that the default value does not contain this target's value
                         defaultValue = BoolAndExpr.create(defaultValue, new BoolNotExpr(match));
+                        // TODO: optimizer
+                        boolean result = solver.mayBeTrue(state.constraints, match);
+                        if (result) {
+                            LLVMBasicBlockRef caseSuccessor = caseEntry.getValue();
+                            branchTargets.put(caseSuccessor, match);
+                            System.out.println("case is possible");
+                            caseEntry.getKey().print();
+                            System.out.println();
+                            // TODO: Handle the case that a basic block might be the target of multiple switch cases?
+                        }
+                    }
+
+                    // Check if control could take the default case
+                    boolean result = solver.mayBeTrue(state.constraints, defaultValue);
+                    if (result) {
+                        // branchTargets.put(defaultDest, defaultValue);
+                        transferToBasicBlock(defaultDest, bb, state);
+                    } else {
+                        System.out.println("default value is not possible, so we terminate current state");
+                        terminateState(state);
+                    }
+
+                    // Fork the current state with each state having one of the possible successors of this switch
+                    for (Map.Entry<LLVMBasicBlockRef, Expr> caseEntry : branchTargets.entrySet()) {
+                        ExecutionState es = state.branch();
+                        states.add(es);
+                        addConstraint(es, caseEntry.getValue());
+                        transferToBasicBlock(caseEntry.getKey(), bb, es);
                     }
                 }
             }
@@ -408,18 +439,16 @@ public class ExecutorImpl implements Executor {
         // TODO: solver chain
     }
 
-    private StatePair fork(ExecutionState current, Expr condition, boolean isInternal, int conditionalBranch) {
+    private StatePair fork(ExecutionState current, Expr condition, boolean isInternal, int reason) {
         // TODO: check branch feasible
-        Solver.SolverEvaluateResult evaluateResult = solver.evaluate(current.constraints, condition
+        Solver.Validity evaluateResult = solver.evaluate(current.constraints, condition
                 // TODO: query meta data
                 // current.queryMetaData
         );
 
-        assert (evaluateResult.solved);
-
-        if (evaluateResult.validity == Solver.Validity.True) {
+        if (evaluateResult == Solver.Validity.True) {
             return new StatePair(current, null);
-        } else if (evaluateResult.validity == Solver.Validity.False) {
+        } else if (evaluateResult == Solver.Validity.False) {
             return new StatePair(null, current);
         } else {
             // use current as true state

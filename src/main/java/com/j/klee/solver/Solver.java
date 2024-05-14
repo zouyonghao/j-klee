@@ -1,6 +1,8 @@
 package com.j.klee.solver;
 
 import com.j.klee.expr.Expr;
+import com.j.klee.expr.impl.BoolExpr;
+import com.j.klee.expr.impl.BoolNotExpr;
 import com.j.klee.expr.impl.ConstantExpr;
 import com.j.klee.solver.impl.SolverImpl;
 
@@ -10,24 +12,33 @@ public class Solver {
 
     SolverImpl solver = new SolverImpl();
 
-    public SolverEvaluateResult evaluate(List<Expr> constraints, Expr condition) {
+    public Validity evaluate(List<Expr> constraints, Expr condition) {
         if (condition instanceof ConstantExpr e) {
-            return new SolverEvaluateResult(true, e.isTrue() ? Validity.True : Validity.False);
+            return e.isTrue() ? Validity.True : Validity.False;
+        }
+        if (condition instanceof BoolExpr be) {
+            return be.isTrue() ? Validity.True : Validity.False;
         }
         return solver.evaluate(new Query(constraints, condition));
     }
 
-    public enum Validity {
-        True, False, Unknown
+    public boolean mayBeTrue(List<Expr> constraints, Expr expr) {
+        return !mustBeFalse(constraints, expr);
     }
 
-    public static class SolverEvaluateResult {
-        public boolean solved;
-        public Validity validity;
+    public boolean mustBeFalse(List<Expr> constraints, Expr expr) {
+        return mustBeTrue(constraints, new BoolNotExpr(expr));
+    }
 
-        public SolverEvaluateResult(boolean solved, Validity validity) {
-            this.solved = solved;
-            this.validity = validity;
+    public boolean mustBeTrue(List<Expr> constraints, Expr expr) {
+        if (expr instanceof ConstantExpr || expr instanceof BoolExpr) {
+            return expr.isTrue();
         }
+
+        return solver.mustBeTrue(new Query(constraints, expr));
+    }
+
+    public enum Validity {
+        True, False, Unknown
     }
 }
