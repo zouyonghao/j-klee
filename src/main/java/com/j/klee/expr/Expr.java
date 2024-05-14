@@ -1,6 +1,7 @@
 package com.j.klee.expr;
 
 import com.j.klee.core.Context;
+import com.j.klee.expr.impl.BoolExpr;
 import com.j.klee.expr.impl.CmpExpr.EqExpr;
 import com.j.klee.expr.impl.ConstantExpr;
 
@@ -52,7 +53,7 @@ public abstract class Expr {
         BitAnd, BitOr, Xor, Shl, LShr, AShr,
 
         // bool
-        BoolNot, BoolAnd, BoolOr,
+        Bool, BoolNot, BoolAnd, BoolOr,
 
         // compare
         Eq, Ne, Ult, Ule, Slt, Sle, Sgt, Sge;
@@ -105,7 +106,7 @@ public abstract class Expr {
     }
 
     public boolean isTrue() {
-        return false;
+        throw new IllegalStateException("not a bool or constant expression!");
     }
 
     public boolean isFalse() {

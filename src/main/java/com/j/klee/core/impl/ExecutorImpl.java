@@ -5,6 +5,9 @@ import com.j.klee.core.mem.Heap;
 import com.j.klee.core.mem.MemoryManager;
 import com.j.klee.core.mem.MemoryObject;
 import com.j.klee.expr.Expr;
+import com.j.klee.expr.impl.BoolBinaryExpr.BoolAndExpr;
+import com.j.klee.expr.impl.BoolExpr;
+import com.j.klee.expr.impl.BoolNotExpr;
 import com.j.klee.expr.impl.CmpExpr.EqExpr;
 import com.j.klee.expr.impl.ConstantExpr;
 import com.j.klee.expr.impl.ZExtExpr;
@@ -22,10 +25,7 @@ import org.bytedeco.llvm.LLVM.LLVMTypeRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
 import org.bytedeco.llvm.global.LLVM;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 
 import static com.j.klee.core.impl.ExecutorUtil.evalConstant;
 import static com.j.klee.expr.Expr.Width.getWidthFromInt;
@@ -147,16 +147,46 @@ public class ExecutorImpl implements Executor {
                 // Num of operands = 6
                 // %6 (cond), %10 (default), 1, %7, 2, %8
                 Expr cond = eval(ki, 0, state).value;
-                LLVMDumpValue(ki.getInst());
-                int numOperands = LLVMGetNumOperands(ki.getInst());
-                for (int j = 0; j < numOperands; j++) {
-                    LLVMDumpValue(LLVMGetOperand(ki.getInst(), j));
-                }
-                System.out.println(LLVMUtils.findSwitchInstSuccessorByConstant(ki.getInst(), 2));
                 if (cond instanceof ConstantExpr) {
                     long longValue = ((ConstantExpr) cond).getZExtValue();
                     LLVMBasicBlockRef bb = LLVMUtils.findSwitchInstSuccessorByConstant(ki.getInst(), longValue);
                     transferToBasicBlock(bb, LLVMGetInstructionParent(ki.getInst()), state);
+                } else {
+                    // Handle possible different branch targets
+
+                    // We have the following assumptions:
+                    // - each case value is mutual exclusive to all other values
+                    // - order of case branches is based on the order of the expressions of
+                    //   the case values, still default is handled last
+                    List<LLVMBasicBlockRef> bbOrder = new ArrayList<>();
+                    Map<LLVMBasicBlockRef, Expr> branchTargets = new HashMap<>();
+                    Map<Expr, LLVMBasicBlockRef> expressionOrder = new HashMap<>();
+
+                    // Iterate through all non-default cases and order them by expressions
+                    int numOperands = LLVMGetNumOperands(inst);
+                    assert (numOperands > 3);
+                    for (int i = 2; i < numOperands; i += 2) {
+                        Expr value = evalConstant(LLVMGetOperand(inst, i));
+                        LLVMBasicBlockRef caseSuccessor = LLVMValueAsBasicBlock(LLVMGetOperand(inst, i + 1));
+                        expressionOrder.put(value, caseSuccessor);
+                    }
+                    System.out.println(expressionOrder.size());
+
+                    // Track default branch values
+                    Expr defaultValue = new BoolExpr(true);
+                    LLVMBasicBlockRef defaultDest = LLVMGetSwitchDefaultDest(inst);
+
+                    // Iterate through all non-default cases but in order of the expressions
+                    for (Map.Entry<Expr, LLVMBasicBlockRef> caseEntry : expressionOrder.entrySet()) {
+                        // skip if case has same successor basic block as default case
+                        // (should work even with phi nodes as a switch is a single terminating instruction)
+                        if (caseEntry.getValue().address() == defaultDest.address()) {
+                            continue;
+                        }
+
+                        Expr match = EqExpr.create(cond, caseEntry.getKey());
+                        defaultValue = BoolAndExpr.create(defaultValue, new BoolNotExpr(match));
+                    }
                 }
             }
             case LLVMUnreachable -> {

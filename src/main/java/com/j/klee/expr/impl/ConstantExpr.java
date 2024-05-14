@@ -1,15 +1,10 @@
 package com.j.klee.expr.impl;
 
-import com.j.klee.core.Context;
 import com.j.klee.expr.Expr;
 import com.j.klee.utils.LLVMUtils;
-import org.bytedeco.llvm.LLVM.LLVMContextRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
 import org.bytedeco.llvm.global.LLVM;
 
-import static org.bytedeco.llvm.global.LLVM.LLVMContextCreate;
-
-// TODO: implement ConstantExpr
 public class ConstantExpr extends Expr {
 
     LLVMValueRef constIntValue;
@@ -62,6 +57,7 @@ public class ConstantExpr extends Expr {
         return null;
     }
 
+    // TODO: should we use this or BoolExpr
     public boolean isTrue() {
         return getWidth() == Width.Bool && getZExtValue() == 1;
     }

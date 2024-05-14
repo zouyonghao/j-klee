@@ -60,8 +60,8 @@ public class SolverImpl {
             hasSolution = internalRunSolver(query, null, null);
             result.isValid = !hasSolution;
         } catch (Exception e) {
-            System.out.println("get exception: " + e);
             result.solved = false;
+            throw e;
         }
         return result;
     }
