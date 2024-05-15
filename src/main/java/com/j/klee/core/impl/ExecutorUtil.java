@@ -44,11 +44,11 @@ public class ExecutorUtil {
         }
         if (LLVM.LLVMIsABlockAddress(constant) != null) {
             System.out.println("a block address ptr...");
-            LLVMBasicBlockRef bb = LLVM.LLVMValueAsBasicBlock(LLVM.LLVMGetOperand(constant, 1));
+            LLVMBasicBlockRef bb = LLVM.LLVMValueAsBasicBlock(LLVMGetOperand(constant, 1));
             assert (bb != null);
-            System.out.println(bb.getPointer().address());
-            LLVMUtils.registerAddress(bb.getPointer().address(), LLVM.LLVMGetOperand(constant, 1));
-            return ConstantExpr.createPointer(bb.getPointer().address());
+            System.out.println(bb.address());
+            LLVMUtils.registerAddress(bb.address(), LLVMGetOperand(constant, 1));
+            return ConstantExpr.createPointer(bb.address());
         }
         System.out.println("not supported constant: " + LLVMPrintTypeToString(LLVMTypeOf(constant)).getString());
         try (BytePointer bp = LLVMPrintValueToString(constant)) {

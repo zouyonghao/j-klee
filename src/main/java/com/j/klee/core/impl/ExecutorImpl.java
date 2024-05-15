@@ -108,12 +108,14 @@ public class ExecutorImpl implements Executor {
         switch (LLVMGetInstructionOpcode(inst)) {
             case LLVMRet -> {
                 System.out.println("currently unsupported inst: ret");
+                // TODO: ret
+                terminateState(state);
             }
             case LLVMBr -> {
                 if (LLVMUtils.isUnconditional(inst)) {
                     LLVMValueRef bb = LLVM.LLVMGetOperand(inst, 0);
                     assert (LLVM.LLVMValueIsBasicBlock(bb) == LLVMUtils.True);
-                    transferToBasicBlock(LLVM.LLVMValueAsBasicBlock(bb), LLVM.LLVMGetInstructionParent(inst), state);
+                    transferToBasicBlock(LLVMValueAsBasicBlock(bb), LLVMGetInstructionParent(inst), state);
                 } else {
                     Expr cond = eval(ki, 0, state).value;
 
@@ -123,7 +125,7 @@ public class ExecutorImpl implements Executor {
 
                     // TODO: track coverage
 
-                    LLVMBasicBlockRef parent = LLVM.LLVMGetInstructionParent(inst);
+                    LLVMBasicBlockRef parent = LLVMGetInstructionParent(inst);
                     if (statePair.trueState != null) {
                         LLVMBasicBlockRef trueBB = LLVM.LLVMGetSuccessor(inst, 0);
                         transferToBasicBlock(trueBB, parent, statePair.trueState);
@@ -137,7 +139,54 @@ public class ExecutorImpl implements Executor {
                 }
             }
             case LLVMIndirectBr -> {
-                System.out.println("currently unsupported inst: indirect");
+                Expr address = eval(ki, 0, state).value;
+
+                if (address instanceof ConstantExpr ce) {
+                    LLVMValueRef v = LLVMUtils.getValueFromAddress(ce.getZExtValue());
+                    LLVMBasicBlockRef bb = LLVMValueAsBasicBlock(v);
+                    assert (bb != null);
+                    transferToBasicBlock(bb, LLVMGetInstructionParent(inst), state);
+                } else {
+                    // indirectbr i8* %23, [label %14, label %18, label %16]
+                    int numOperands = LLVMGetNumOperands(inst);
+                    List<LLVMBasicBlockRef> targets = new ArrayList<>();
+                    List<Expr> expressions = new ArrayList<>();
+                    Expr errorCase = new BoolExpr(true);
+
+                    List<LLVMBasicBlockRef> destinations = new ArrayList<>();
+                    for (int j = 1; j < numOperands; j++) {
+                        LLVMBasicBlockRef dest = LLVMValueAsBasicBlock(LLVMGetOperand(inst, j));
+                        if (destinations.contains(dest)) {
+                            continue;
+                        }
+                        destinations.add(dest);
+
+                        Expr destAddress = ConstantExpr.createPointer(dest.address(), address.getWidth());
+                        Expr e = new EqExpr(address, destAddress);
+
+                        errorCase = new BoolAndExpr(errorCase, new BoolNotExpr(e));
+
+                        boolean result = solver.mayBeTrue(state.constraints, e);
+                        if (result) {
+                            targets.add(dest);
+                            expressions.add(e);
+                        }
+                    }
+
+                    for (int j = 0; j < targets.size(); j++) {
+                        ExecutionState es = state.branch();
+                        states.add(es);
+                        addConstraint(es, expressions.get(j));
+                        transferToBasicBlock(targets.get(j), LLVMGetInstructionParent(inst), es);
+                    }
+
+                    // check errorCase feasibility
+                    boolean result = solver.mayBeTrue(state.constraints, errorCase);
+                    if (result) {
+                        throw new IllegalStateException("indirect br: illegal label address");
+                    }
+                    terminateState(state);
+                }
             }
             case LLVMSwitch -> {
                 // switch i32 %6, label %10 [
@@ -147,7 +196,7 @@ public class ExecutorImpl implements Executor {
                 // Num of operands = 6
                 // %6 (cond), %10 (default), 1, %7, 2, %8
                 Expr cond = eval(ki, 0, state).value;
-                LLVMBasicBlockRef bb = LLVM.LLVMGetInstructionParent(inst);
+                LLVMBasicBlockRef bb = LLVMGetInstructionParent(inst);
                 if (cond instanceof ConstantExpr) {
                     long longValue = ((ConstantExpr) cond).getZExtValue();
                     LLVMBasicBlockRef caseBB = LLVMUtils.findSwitchInstSuccessorByConstant(ki.getInst(), longValue);
@@ -252,7 +301,10 @@ public class ExecutorImpl implements Executor {
                 executeCall(state, ki, f, arguments);
             }
             case LLVMPHI -> {
-                System.out.println("currently unsupported inst: phi");
+                Expr result = eval(ki, state.incomingBBIndex, state).value;
+                result.print();
+                bindLocal(ki, state, result);
+                // TODO: loop invariant
             }
             case LLVMSelect -> {
                 System.out.println("currently unsupported inst: select");
