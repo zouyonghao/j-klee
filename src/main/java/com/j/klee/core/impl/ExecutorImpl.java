@@ -161,6 +161,7 @@ public class ExecutorImpl implements Executor {
                         }
                         destinations.add(dest);
 
+                        // TODO: is this correct? This line is different from Klee.
                         Expr destAddress = ConstantExpr.createPointer(dest.address(), address.getWidth());
                         Expr e = new EqExpr(address, destAddress);
 
