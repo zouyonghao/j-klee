@@ -70,13 +70,13 @@ public class LLVMUtils {
         return num;
     }
 
-    public static int getAllocaIndex(LLVMValueRef allocaInst) {
-        if (LLVMGetInstructionOpcode(allocaInst) != LLVMAlloca) {
+    public static int getAllocIndex(LLVMValueRef allocInst) {
+        if (LLVMGetInstructionOpcode(allocInst) != LLVMAlloca) {
             throw new IllegalArgumentException("Provided instruction is not an alloca.");
         }
 
         // Get the parent basic block of the alloca instruction
-        LLVMBasicBlockRef bb = LLVMGetInstructionParent(allocaInst);
+        LLVMBasicBlockRef bb = LLVMGetInstructionParent(allocInst);
         if (bb == null) {
             throw new IllegalArgumentException("Alloca instruction has no parent basic block.");
         }
@@ -85,7 +85,7 @@ public class LLVMUtils {
         LLVMValueRef instr;
         int index = 0;
         for (instr = LLVMGetFirstInstruction(bb); instr != null; instr = LLVMGetNextInstruction(instr)) {
-            if (instr.address() == allocaInst.address()) {
+            if (instr.address() == allocInst.address()) {
                 return index;
             }
             index++;
