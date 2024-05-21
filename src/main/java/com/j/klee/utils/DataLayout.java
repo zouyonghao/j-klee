@@ -41,7 +41,7 @@ public class DataLayout {
                 return 0;
             }
             case LLVM.LLVMPointerTypeKind -> {
-                return LLVM.LLVMPointerSizeForAS(dataLayout, LLVM.LLVMGetPointerAddressSpace(type));
+                return LLVM.LLVMPointerSizeForAS(dataLayout, LLVM.LLVMGetPointerAddressSpace(type)) * 8;
             }
             case LLVM.LLVMIntegerTypeKind -> {
                 return LLVM.LLVMGetIntTypeWidth(type);
@@ -51,7 +51,7 @@ public class DataLayout {
         throw new IllegalStateException("Unsupported type!");
     }
 
-    public int LLVMStoreSizeOfType(LLVMTypeRef type) {
-        return Math.toIntExact((LLVM.LLVMStoreSizeOfType(dataLayout, type) + 7) / 8);
+    public long LLVMStoreSizeOfType(LLVMTypeRef type) {
+        return LLVM.LLVMStoreSizeOfType(dataLayout, type);
     }
 }

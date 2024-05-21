@@ -221,7 +221,7 @@ public class ExecutorImpl implements Executor {
                         LLVMBasicBlockRef caseSuccessor = LLVMValueAsBasicBlock(LLVMGetOperand(inst, i + 1));
                         expressionOrder.put(value, caseSuccessor);
                     }
-                    System.out.println(expressionOrder.size());
+                    // System.out.println(expressionOrder.size());
 
                     // Track default branch values
                     Expr defaultValue = new BoolExpr(true);
@@ -377,7 +377,7 @@ public class ExecutorImpl implements Executor {
             case LLVMAlloca -> {
                 System.out.println("executing alloca..." + state.pc.getKInst().getInfo().getLine());
                 LLVMTypeRef allocType = LLVMGetAllocatedType(inst);
-                int byteSize = this.kModule.getTargetData().LLVMStoreSizeOfType(allocType);
+                long byteSize = this.kModule.getTargetData().LLVMStoreSizeOfType(allocType);
                 Expr size = Expr.createPointer(byteSize);
                 // TODO: array allocation
                 executeAlloc(state, size, true, ki);

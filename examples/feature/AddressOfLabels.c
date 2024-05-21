@@ -7,8 +7,9 @@
 
 //int main(int argc, char * argv[]) {
 int main() {
-    int argc = 2;
-	puts("argc 2");
+    int argc = 1;
+//    int argc = 2;
+//    int argc = 3;
 	// prevent CFGSimplificationPass optimisation
 	void * dummy = &&one;
 	switch(argc) {
