@@ -8,7 +8,7 @@ import com.j.klee.expr.impl.ConstantExpr;
 import com.j.klee.module.KInstruction;
 import com.j.klee.utils.LLVMUtils;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
-import org.bytedeco.llvm.global.LLVM;
+import picocli.CommandLine;
 
 import java.util.AbstractMap;
 import java.util.HashMap;
@@ -170,7 +170,7 @@ public class SpecialFunctionHandlerImpl implements SpecialFunctionHandler {
             LLVMValueRef argument = LLVMUtils.getValueFromAddress(((ConstantExpr) arguments.getFirst()).getZExtValue());
             assert (argument != null);
             String argString = LLVMUtils.getStringFromLLVMValue(argument);
-            System.out.println(argString);
+            System.out.println(CommandLine.Help.Ansi.AUTO.string("@|bold,green " + argString + "|@"));
         }
 
         @Override

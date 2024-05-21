@@ -35,17 +35,22 @@
             <artifactId>ksmt-z3</artifactId>
             <version>0.5.23</version>
         </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-stdlib-jdk8</artifactId>
+            <version>${kotlin.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>info.picocli</groupId>
+            <artifactId>picocli</artifactId>
+            <version>4.7.6</version>
+        </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <version>5.10.2</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-stdlib-jdk8</artifactId>
-            <version>${kotlin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
@@ -118,6 +123,47 @@
                         <goals>
                             <goal>testCompile</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.2.4</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>io.ksmt:ksmt-z3-native-mac-arm</exclude>
+                                    <exclude>io.ksmt:ksmt-z3-native-mac-x64</exclude>
+                                    <exclude>io.ksmt:ksmt-z3-native-windows-x64</exclude>
+                                    <exclude>org.bytedeco:javacpp:android-arm64</exclude>
+                                    <exclude>org.bytedeco:javacpp:android-x86_64</exclude>
+                                    <exclude>org.bytedeco:javacpp:ios-arm64</exclude>
+                                    <exclude>org.bytedeco:javacpp:ios-x86_64</exclude>
+                                    <exclude>org.bytedeco:javacpp:linux-arm64</exclude>
+                                    <exclude>org.bytedeco:javacpp:linux-ppc64le</exclude>
+                                    <exclude>org.bytedeco:javacpp:macosx-arm64</exclude>
+                                    <exclude>org.bytedeco:javacpp:macosx-x86_64</exclude>
+                                    <exclude>org.bytedeco:javacpp:windows-x86_64</exclude>
+                                    <exclude>org.bytedeco:llvm:linux-arm64</exclude>
+                                    <exclude>org.bytedeco:llvm:linux-ppc64le</exclude>
+                                    <exclude>org.bytedeco:llvm:macosx-arm64</exclude>
+                                    <exclude>org.bytedeco:llvm:macosx-x86_64</exclude>
+                                    <exclude>org.bytedeco:llvm:windows-x86_64</exclude>
+                                </excludes>
+                            </artifactSet>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>com.j.klee.Main</mainClass>
+                                </transformer>
+                            </transformers>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
