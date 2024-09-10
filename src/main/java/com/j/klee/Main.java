@@ -2,12 +2,14 @@ package com.j.klee;
 
 import com.j.klee.core.Executor;
 import com.j.klee.core.ModuleOptions;
+import com.j.klee.utils.LLVMUtils;
 import org.apache.commons.cli.*;
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.llvm.LLVM.LLVMContextRef;
 import org.bytedeco.llvm.LLVM.LLVMMemoryBufferRef;
 import org.bytedeco.llvm.LLVM.LLVMModuleRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
+import org.bytedeco.llvm.global.LLVM;
 
 import java.nio.IntBuffer;
 import java.util.ArrayList;
@@ -19,6 +21,7 @@ public class Main {
     private static final BytePointer error = new BytePointer();
 
     private static String entryFunctionName = "main";
+    private static boolean listFunctions = false;
 
     public static void main(String[] args) {
 
@@ -70,6 +73,17 @@ public class Main {
 
         // TODO: detect architecture
 
+        // iterator all functions
+        if (listFunctions) {
+            for (LLVMModuleRef m : modules) {
+                LLVMValueRef f = LLVM.LLVMGetFirstFunction(m);
+                while (f != null) {
+                    var funcName = LLVMUtils.getFunctionName(f);
+                    System.out.println(funcName);
+                    f = LLVM.LLVMGetNextFunction(f);
+                }
+            }
+        }
         // TODO: support entry point
         System.out.println("Checking main function existence...");
         LLVMValueRef entryFunction = null;
@@ -81,7 +95,7 @@ public class Main {
         }
 
         if (entryFunction == null) {
-            System.out.println("entry function " + entryFunctionName + " function not found");
+            System.err.println("entry function " + entryFunctionName + " function not found");
             return;
         }
 
@@ -121,9 +135,8 @@ public class Main {
 
     private static String[] parseArgs(String[] args) {
         Options options = new Options();
-        Option entry = new Option("e", "entry", true, "entry point");
-        entry.setRequired(false);
-        options.addOption(entry);
+        options.addOption(new Option("e", "entry", false, "entry point"));
+        options.addOption(new Option("lf", "list-functions", false, "list all functions in the module"));
 
         CommandLineParser parser = new DefaultParser();
         HelpFormatter formatter = new HelpFormatter();
@@ -136,6 +149,10 @@ public class Main {
             // Check if option "a" is present and print its value
             if (cmd.hasOption("entry")) {
                 entryFunctionName = cmd.getOptionValue("entry");
+            }
+
+            if (cmd.hasOption("lf") && cmd.<Boolean>getParsedOptionValue("lf")) {
+                listFunctions = true;
             }
 
             return cmd.getArgs();
