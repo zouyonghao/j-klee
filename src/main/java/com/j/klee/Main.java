@@ -151,7 +151,7 @@ public class Main {
                 entryFunctionName = cmd.getOptionValue("entry");
             }
 
-            if (cmd.hasOption("lf") && cmd.<Boolean>getParsedOptionValue("lf")) {
+            if (cmd.hasOption("lf")) {
                 listFunctions = true;
             }
 
