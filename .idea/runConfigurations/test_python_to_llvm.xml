@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="test-python-to-llvm" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="com.j.klee.Main" />
+    <module name="j-klee" />
+    <option name="PROGRAM_PARAMETERS" value="--list-functions --entry _ZN8__main__4mainB3v27B38c8tJTIeFIjxB2IKSgI4CrvQClQZ6FczSBAA_3dE56DictType_5bunicode_type_2cunicode_type_5d_3civ_3dNone_3e examples/python-to-llvm/_hello.ll" />
+    <option name="VM_PARAMETERS" value="-ea -Dpicocli.ansi=true" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="com.j.klee.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

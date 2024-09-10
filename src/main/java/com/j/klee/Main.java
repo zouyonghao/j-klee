@@ -99,6 +99,8 @@ public class Main {
             return;
         }
 
+        System.out.println("entry function found.");
+
         // TODO: support POSIX runtime
 
         // TODO: UBSan can we?
@@ -135,7 +137,7 @@ public class Main {
 
     private static String[] parseArgs(String[] args) {
         Options options = new Options();
-        options.addOption(new Option("e", "entry", false, "entry point"));
+        options.addOption(new Option("e", "entry", true, "entry point"));
         options.addOption(new Option("lf", "list-functions", false, "list all functions in the module"));
 
         CommandLineParser parser = new DefaultParser();
